@@ -586,6 +586,7 @@ int LoadGLTextures(const aiScene* scene)
 	{
 		//save IL image ID
 		std::string filename = (*itr).first;  // get filename
+		//std::replace(filename.begin(), filename.end(), '\\', '/'); //Replace backslash with forward slash so linux can find the files
 		(*itr).second = textureIds[i];	  // save texture id for filename in map
 
 		ilBindImage(imageIds[i]); /* Binding of DevIL image name */
@@ -918,7 +919,9 @@ void camTimer(int value) {
 	cvCvtColor(image, image, CV_BGR2RGB);
 
 	// Create Texture
-	glGenTextures(1, &textureID); /* Texture name generation*/
+
+	//TODO THIS IS A MEMORY LEAK NEED TO DEAL WITH TEXTURES PROPERLY
+	glGenTextures(1, &textureID); // Texture name generation
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, image->width, image->height, GL_RGB, GL_UNSIGNED_BYTE, image->imageData);
 
@@ -930,8 +933,6 @@ void renderScene(void) {
 
 // clear the framebuffer (color and depth)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
 
 	//DRAW 2D VIDEO
 	// Use the program p
@@ -965,7 +966,7 @@ void renderScene(void) {
 	// unfortunately samplers can't reside in uniform blocks
 	// so we have set this uniform separately
 	glUniform1i(texUnit, 0);
-		
+		 
 
 	//glLoadMatrixf((float*)viewMatrix.data);
 	recursive_render(scene, scene->mRootNode);
@@ -1344,6 +1345,19 @@ int init2D() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(textureCoord), textureCoord, GL_STATIC_DRAW);
     glEnableVertexAttribArray(texCoordLoc);
     glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, 0, 0, 0);
+
+
+	glGenTextures(1, &textureID); //Gen a new texture and store the handle in texname
+
+								//These settings stick with the texture that's bound. You only need to set them
+								//once.
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	//allocate memory on the graphics card for the texture. It's fine if
+	//texture_data doesn't have any data in it, the texture will just appear black
+	//until you update it.
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB,
+		GL_UNSIGNED_BYTE, {});
 
 
 	return true;
