@@ -130,6 +130,12 @@ GLuint matricesUniBuffer;
 
 // Program and Shader Identifiers
 GLuint program, vertexShader, fragmentShader;
+GLuint p, vertexShader2D, fragmentShader2D;
+
+
+// holder for the vertex array object id
+GLuint vao, textureID;
+
 
 // Shader Names
 char *vertexFileName = "dirlightdiffambpix.vert";
@@ -430,33 +436,6 @@ void buildProjectionMatrix(float fov, float ratio, float nearp, float farp) {
 
 }
 
-void buildOrthoProjectionMatrix(float left, float right, float top, float bottom, float Znear, float Zfar){
-	float projMatrix[16];
-    projMatrix[0]= 2.0/(right-left);
-    projMatrix[1] = 0;
-    projMatrix[2] = 0;
-    projMatrix[3] = -(right+left)/(right-left);
-
-    projMatrix[4] = 0;
-    projMatrix[5] = 1/(top-bottom);
-    projMatrix[6] = 0;
-    projMatrix[7] = -(top+bottom)/(top-bottom);
-
-    projMatrix[8] = 0;
-    projMatrix[9] = 0;
-    projMatrix[10] = -2.0/(Zfar-Znear);
-    projMatrix[11] = -(Zfar+Znear)/(Zfar-Znear);
-
-    projMatrix[12] = 0;
-    projMatrix[13] = 0;
-    projMatrix[14] = 0;
-    projMatrix[15] = 1;
-
-    glBindBuffer(GL_UNIFORM_BUFFER, matricesUniBuffer);
-	glBufferSubData(GL_UNIFORM_BUFFER, ProjMatrixOffset, MatrixSize, projMatrix);
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-}
-
 
 // ----------------------------------------------------
 // View Matrix
@@ -607,9 +586,6 @@ int LoadGLTextures(const aiScene* scene)
 	{
 		//save IL image ID
 		std::string filename = (*itr).first;  // get filename
-		//replace forward slash with backslash to make linux friendly
-		std::replace(filename.begin(), filename.end(), '\\', '/');
-
 		(*itr).second = textureIds[i];	  // save texture id for filename in map
 
 		ilBindImage(imageIds[i]); /* Binding of DevIL image name */
@@ -947,29 +923,62 @@ void camTimer(int value) {
 	glutTimerFunc(1000.0f / 15.0f, camTimer, 0);
 }
 
+// ------------------------------------------------------------
+//
+//			Prepare texture
+//
+// ------------------------------------------------------------
+
+void prepareTexture(int w, int h, unsigned char* data) {
+
+	/* Create and load texture to OpenGL */
+	glGenTextures(1, &textureID); /* Texture name generation */
+	glBindTexture(GL_TEXTURE_2D, textureID); 
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 
+                w, h, 
+                0, GL_RGBA, GL_UNSIGNED_BYTE,
+                data); 
+	glGenerateMipmap(GL_TEXTURE_2D);
+}
+
 
 void renderScene(void) {
 
-	//Check for errors
-	GLenum glErr;
-
-	glErr = glGetError();
-	if (glErr != GL_NO_ERROR)
-	{
-		printf("glError %s\n", gluErrorString(glErr));
-	}
-
-
-	static float step = 0.0f;
-
+// clear the framebuffer (color and depth)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//Draw the 2D Video Section
+
+	// Capture next frame
+	cap >> imageMat; // get image from camera
+
+
+	IplImage *image;
+	IplImage copy = imageMat;
+	image = &copy;
+
+
+	// Convert to RGB
+	cvCvtColor(image, image, CV_BGR2RGB);
+
+	// Create Texture
+	glGenTextures(1, &textureID); /* Texture name generation */
+	glBindTexture(GL_TEXTURE_2D, textureID); 
+	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, image->width, image->height, GL_RGB, GL_UNSIGNED_BYTE, image->imageData);
+	
+
+	// Use the program p
+	glUseProgram(p);
+	// Bind the vertex array object
+	glBindVertexArray(vao);
+	// Bind texture
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	// draw the 6 vertices
+	glDrawArrays(GL_TRIANGLES, 0, 6);
 
 
 
-
-	// set camera matrix
+	glClear( GL_DEPTH_BUFFER_BIT);
+		// set camera matrix
 	setCamera(camX, camY, camZ, 0, 0, 0);
 
 	// set the model matrix to the identity Matrix
@@ -993,24 +1002,10 @@ void renderScene(void) {
 	//glLoadMatrixf((float*)viewMatrix.data);
 	recursive_render(scene, scene->mRootNode);
 
-	// FPS computation and display
-	frame++;
-	timet = glutGet(GLUT_ELAPSED_TIME);
-	if (timet - timebase > 1000) {
-		sprintf(s, "FPS:%4.2f",
-			frame*1000.0 / (timet - timebase));
-		timebase = timet;
-		frame = 0;
-		glutSetWindowTitle(s);
-	}
-
 
 
 	// swap buffers
 	glutSwapBuffers();
-
-	// increase the rotation angle
-	step++;
 }
 
 
@@ -1199,9 +1194,6 @@ GLuint setupShaders() {
 	glCompileShader(v);
 	glCompileShader(f);
 
-	printShaderInfoLog(v);
-	printShaderInfoLog(f);
-
 	p = glCreateProgram();
 	glAttachShader(p, v);
 	glAttachShader(p, f);
@@ -1214,7 +1206,6 @@ GLuint setupShaders() {
 
 	glLinkProgram(p);
 	glValidateProgram(p);
-	printProgramInfoLog(p);
 
 	program = p;
 	vertexShader = v;
@@ -1228,6 +1219,159 @@ GLuint setupShaders() {
 
 	return(p);
 }
+
+// --------------------------------------------------------
+//
+//			Shader Stuff
+//
+// --------------------------------------------------------
+
+void setupShaders2D() {
+
+	// variables to hold the shader's source code
+	char *vs = NULL, *fs = NULL;
+
+	// holders for the shader's ids
+	GLuint v, f;
+
+	// create the two shaders
+	v = glCreateShader(GL_VERTEX_SHADER);
+	f = glCreateShader(GL_FRAGMENT_SHADER);
+
+	// read the source code from file
+	vs = textFileRead("texture.vert");
+	fs = textFileRead("texture.frag");
+
+	// castings for calling the shader source function
+	const char * vv = vs;
+	const char * ff = fs;
+
+	// setting the source for each shader
+	glShaderSource(v, 1, &vv, NULL);
+	glShaderSource(f, 1, &ff, NULL);
+
+	// free the source strings
+	free(vs); free(fs);
+
+	// compile the sources
+	glCompileShader(v);
+	glCompileShader(f);
+
+	// create a program and attach the shaders
+	p = glCreateProgram();
+	glAttachShader(p, v);
+	glAttachShader(p, f);
+
+	// Bind the fragment data output variable location
+	// requires linking afterwards
+	glBindFragDataLocation(p, 0, "outputF");
+
+	// link the program
+	glLinkProgram(p);
+
+	GLint myLoc = glGetUniformLocation(p, "texUnit");
+	//glProgramUniform1d(p, myLoc, 0);
+}
+
+
+
+int init2D() {
+	// Data for the two triangles
+	float position[] = { -1.0f, -1.0f, 0.0f, 1.0f,
+		1.0f,  1.0f, 0.0f, 1.0f,
+		-1.0f,  1.0f, 0.0f, 1.0f,
+
+		1.0f,  1.0f, 0.0f, 1.0f,
+		-1.0f, -1.0f, 0.0f, 1.0f,
+		1.0f, -1.0f, 0.5f, 1.0f,
+	};
+
+	float textureCoord[] = {
+		0.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 1.0f,
+
+		1.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f };
+
+
+	// variables to hold the shader's source code
+	char *vs = NULL, *fs = NULL;
+
+	// holders for the shader's ids
+	GLuint v, f;
+
+	// create the two shaders
+	v = glCreateShader(GL_VERTEX_SHADER);
+	f = glCreateShader(GL_FRAGMENT_SHADER);
+
+	// read the source code from file
+	vs = textFileRead("texture.vert");
+	fs = textFileRead("texture.frag");
+
+	// castings for calling the shader source function
+	const char * vv = vs;
+	const char * ff = fs;
+
+	// setting the source for each shader
+	glShaderSource(v, 1, &vv, NULL);
+	glShaderSource(f, 1, &ff, NULL);
+
+	// free the source strings
+	free(vs); free(fs);
+
+	// compile the sources
+	glCompileShader(v);
+	glCompileShader(f);
+
+	// create a program and attach the shaders
+	p = glCreateProgram();
+	glAttachShader(p, v);
+	glAttachShader(p, f);
+
+	// Bind the fragment data output variable location
+	// requires linking afterwards
+	glBindFragDataLocation(p, 0, "outputF");
+
+	// link the program
+	glLinkProgram(p);
+
+	GLint myLoc = glGetUniformLocation(p, "texUnit");
+	//glProgramUniform1d(p, myLoc, 0);
+
+	GLuint vertexLoc, texCoordLoc;
+
+	// Get the locations of the attributes in the current program
+	vertexLoc = glGetAttribLocation(p, "position");
+	texCoordLoc = glGetAttribLocation(p, "texCoord");
+
+	// Generate and bind a Vertex Array Object
+	// this encapsulates the buffers used for drawing the triangle
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+	// Generate two slots for the position and color buffers
+    GLuint buffers[2];
+    glGenBuffers(2, buffers);
+
+    // bind buffer for vertices and copy data into buffer
+    glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(position), position, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(vertexLoc);
+    glVertexAttribPointer(vertexLoc, 4, GL_FLOAT, 0, 0, 0);
+ 
+    // bind buffer for normals and copy data into buffer
+    glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(textureCoord), textureCoord, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(texCoordLoc);
+    glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, 0, 0, 0);
+
+
+	return true;
+}
+
+
 
 // ------------------------------------------------------------
 //
@@ -1249,7 +1393,8 @@ int init()
 	glBindBufferRange = (PFNGLBINDBUFFERRANGEPROC)glutGetProcAddress("glBindBufferRange");
 	glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC)glutGetProcAddress("glDeleteVertexArrays");
 
-	program = setupShaders();
+	
+	
 	genVAOsAndUniformBuffer(scene);
 
 	glEnable(GL_DEPTH_TEST);
@@ -1266,7 +1411,7 @@ int init()
 
 	glEnable(GL_MULTISAMPLE);
 
-
+	init2D();
 
 
 
@@ -1279,6 +1424,11 @@ void myTimer(int value) {
 	glutTimerFunc(1000.0f / 60.0f, myTimer, 0);
 	
 }
+
+
+
+
+
 
 
 // ------------------------------------------------------------
@@ -1296,6 +1446,7 @@ int main(int argc, char **argv) {
 
 	glutInitContextVersion(3, 3);
 	glutInitContextFlags(GLUT_COMPATIBILITY_PROFILE);
+
 
 	glutInitWindowPosition(100, 100);
 	glutInitWindowSize(windowWidth, windowHeight);
@@ -1336,7 +1487,12 @@ int main(int argc, char **argv) {
 
 
 	// return from main loop
-	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
+	//glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
+
+
+	program = setupShaders();
+	//setupShaders2D();
+	
 
 	//  GLUT main loop
 	glutMainLoop();
