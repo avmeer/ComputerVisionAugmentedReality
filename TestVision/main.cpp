@@ -904,41 +904,25 @@ void detectArucoMarkers() {
 
 
 void camTimer(int value) {
-	// Capture next frame
 	cap >> imageMat; // get image from camera
-					 //Detect the aruco markers and draw their orientation
 	detectArucoMarkers();
 
 	IplImage *image;
 	IplImage copy = imageMat;
 	image = &copy;
 
+	cvFlip(image, image, 0);
+
 
 	// Convert to RGB
 	cvCvtColor(image, image, CV_BGR2RGB);
 
 	// Create Texture
-	//gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, image->width, image->height, GL_RGB, GL_UNSIGNED_BYTE, image->imageData);
+	glGenTextures(1, &textureID); /* Texture name generation*/
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, image->width, image->height, GL_RGB, GL_UNSIGNED_BYTE, image->imageData);
 
 	glutTimerFunc(1000.0f / 15.0f, camTimer, 0);
-}
-
-// ------------------------------------------------------------
-//
-//			Prepare texture
-//
-// ------------------------------------------------------------
-
-void prepareTexture(int w, int h, unsigned char* data) {
-
-	/* Create and load texture to OpenGL */
-	glGenTextures(1, &textureID); /* Texture name generation */
-	glBindTexture(GL_TEXTURE_2D, textureID); 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 
-                w, h, 
-                0, GL_RGBA, GL_UNSIGNED_BYTE,
-                data); 
-	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
 
@@ -948,26 +932,8 @@ void renderScene(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-	// Capture next frame
-	cap >> imageMat; // get image from camera
 
-
-	IplImage *image;
-	IplImage copy = imageMat;
-	image = &copy;
-
-	cvFlip(image,image,0);
-
-
-	// Convert to RGB
-	cvCvtColor(image, image, CV_BGR2RGB);
-
-	// Create Texture
-	glGenTextures(1, &textureID); /* Texture name generation */
-	glBindTexture(GL_TEXTURE_2D, textureID); 
-	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, image->width, image->height, GL_RGB, GL_UNSIGNED_BYTE, image->imageData);
-	
-
+	//DRAW 2D VIDEO
 	// Use the program p
 	glUseProgram(p);
 	// Bind the vertex array object
@@ -978,7 +944,7 @@ void renderScene(void) {
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
 
-
+	//DRAW 3D MODEL
 	glClear( GL_DEPTH_BUFFER_BIT);
 		// set camera matrix
 	setCamera(camX, camY, camZ, 0, 0, 0);
@@ -1004,6 +970,16 @@ void renderScene(void) {
 	//glLoadMatrixf((float*)viewMatrix.data);
 	recursive_render(scene, scene->mRootNode);
 
+	// FPS computation and display
+	frame++;
+	timet = glutGet(GLUT_ELAPSED_TIME);
+	if (timet - timebase > 1000) {
+		sprintf(s, "FPS:%4.2f",
+			frame*1000.0 / (timet - timebase));
+		timebase = timet;
+		frame = 0;
+		glutSetWindowTitle(s);
+	}
 
 
 	// swap buffers
