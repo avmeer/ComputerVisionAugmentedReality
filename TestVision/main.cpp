@@ -586,7 +586,7 @@ int LoadGLTextures(const aiScene* scene)
 	{
 		//save IL image ID
 		std::string filename = (*itr).first;  // get filename
-		//std::replace(filename.begin(), filename.end(), '\\', '/'); //Replace backslash with forward slash so linux can find the files
+		std::replace(filename.begin(), filename.end(), '\\', '/'); //Replace backslash with forward slash so linux can find the files
 		(*itr).second = textureIds[i];	  // save texture id for filename in map
 
 		ilBindImage(imageIds[i]); /* Binding of DevIL image name */
