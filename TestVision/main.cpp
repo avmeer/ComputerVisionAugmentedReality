@@ -956,6 +956,8 @@ void renderScene(void) {
 	IplImage copy = imageMat;
 	image = &copy;
 
+	cvFlip(image,image,0);
+
 
 	// Convert to RGB
 	cvCvtColor(image, image, CV_BGR2RGB);
