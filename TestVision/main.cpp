@@ -956,7 +956,7 @@ void renderScene(void) {
 	scale(scaleFactor, scaleFactor, scaleFactor);
 
 	// keep rotating the model
-	//rotate(step, 0.0f, 1.0f, 0.0f);
+	rotate(90.0f, 1.0f, 0.0f, 0.0f);
 
 	// use our shader
 	glUseProgram(program);
