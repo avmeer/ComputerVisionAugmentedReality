@@ -47,7 +47,7 @@
 
 
 // include DevIL for image loading
-#include <IL\il.h>
+#include <IL/il.h>
 
 
 
@@ -62,8 +62,8 @@
 
 // assimp include files. These three are usually needed.
 #include "assimp/Importer.hpp"	//OO version Header!
-#include "assimp/PostProcess.h"
-#include "assimp/Scene.h"
+#include "assimp/postprocess.h"
+#include "assimp/scene.h"
 
 
 #include <math.h>
@@ -580,6 +580,9 @@ int LoadGLTextures(const aiScene* scene)
 	{
 		//save IL image ID
 		std::string filename = (*itr).first;  // get filename
+		//replace forward slash with backslash to make linux friendly
+		std::replace(filename.begin(), filename.end(), '\\', '/');
+
 		(*itr).second = textureIds[i];	  // save texture id for filename in map
 
 		ilBindImage(imageIds[i]); /* Binding of DevIL image name */
