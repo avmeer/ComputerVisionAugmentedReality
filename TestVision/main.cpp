@@ -430,6 +430,33 @@ void buildProjectionMatrix(float fov, float ratio, float nearp, float farp) {
 
 }
 
+void buildOrthoProjectionMatrix(float left, float right, float top, float bottom, float Znear, float Zfar){
+	float projMatrix[16];
+    projMatrix[0]= 2.0/(right-left);
+    projMatrix[1] = 0;
+    projMatrix[2] = 0;
+    projMatrix[3] = -(right+left)/(right-left);
+
+    projMatrix[4] = 0;
+    projMatrix[5] = 1/(top-bottom);
+    projMatrix[6] = 0;
+    projMatrix[7] = -(top+bottom)/(top-bottom);
+
+    projMatrix[8] = 0;
+    projMatrix[9] = 0;
+    projMatrix[10] = -2.0/(Zfar-Znear);
+    projMatrix[11] = -(Zfar+Znear)/(Zfar-Znear);
+
+    projMatrix[12] = 0;
+    projMatrix[13] = 0;
+    projMatrix[14] = 0;
+    projMatrix[15] = 1;
+
+    glBindBuffer(GL_UNIFORM_BUFFER, matricesUniBuffer);
+	glBufferSubData(GL_UNIFORM_BUFFER, ProjMatrixOffset, MatrixSize, projMatrix);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
 
 // ----------------------------------------------------
 // View Matrix
