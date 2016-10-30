@@ -471,7 +471,8 @@ void setCamera(float posX, float posY, float posZ,
 
 void get_bounding_box_for_node(const aiNode* nd,
 	aiVector3D* min,
-	aiVector3D* max)
+	aiVector3D* max,
+	aiScene* scene)
 
 {
 	aiMatrix4x4 prev;
@@ -494,17 +495,17 @@ void get_bounding_box_for_node(const aiNode* nd,
 	}
 
 	for (n = 0; n < nd->mNumChildren; ++n) {
-		get_bounding_box_for_node(nd->mChildren[n], min, max);
+		get_bounding_box_for_node(nd->mChildren[n], min, max,scene);
 	}
 }
 
 
-void get_bounding_box(aiVector3D* min, aiVector3D* max)
+void get_bounding_box(aiVector3D* min, aiVector3D* max, aiScene* scene)
 {
 
 	min->x = min->y = min->z = 1e10f;
 	max->x = max->y = max->z = -1e10f;
-	get_bounding_box_for_node(scene->mRootNode, min, max);
+	get_bounding_box_for_node(scene->mRootNode, min, max, scene);
 }
 
 bool Import3DFromFile(const std::string& pFile)
@@ -534,7 +535,7 @@ bool Import3DFromFile(const std::string& pFile)
 	printf("Import of scene %s succeeded.", pFile.c_str());
 
 	aiVector3D scene_min, scene_max, scene_center;
-	get_bounding_box(&scene_min, &scene_max);
+	get_bounding_box(&scene_min, &scene_max, scene);
 	float tmp;
 	tmp = scene_max.x - scene_min.x;
 	tmp = scene_max.y - scene_min.y > tmp ? scene_max.y - scene_min.y : tmp;
