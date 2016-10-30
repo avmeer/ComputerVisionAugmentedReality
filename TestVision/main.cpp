@@ -74,9 +74,15 @@
 #include <iostream>
 
 
+//Scene and view info for each model
+struct MyModel{
+	aiScene* scene;
+	cv::Mat viewMatrix;
+};
+
+
 // Information to render each assimp node
 struct MyMesh {
-
 	GLuint vao;
 	GLuint texIndex;
 	GLuint uniformBlockIndex;
@@ -145,7 +151,9 @@ char *fragmentFileName = "dirlightdiffambpix.frag";
 Assimp::Importer importer;
 
 // the global Assimp scene object
-aiScene* scene = NULL;
+aiScene* scenes = NULL;
+aiScene* scenes2 = NULL;
+std::vector<MyModel> models;
 
 // scale factor for the model to fit in the window
 float scaleFactor;
@@ -508,7 +516,7 @@ void get_bounding_box(aiVector3D* min, aiVector3D* max, aiScene* scene)
 	get_bounding_box_for_node(scene->mRootNode, min, max, scene);
 }
 
-bool Import3DFromFile(const std::string& pFile)
+bool Import3DFromFile(const std::string& pFile, aiScene*& scene)
 {
 
 	//check if file exists
@@ -523,6 +531,7 @@ bool Import3DFromFile(const std::string& pFile)
 	}
 
 	scene = const_cast<aiScene*>(importer.ReadFile(pFile, aiProcessPreset_TargetRealtime_Quality));
+
 
 	// If the import failed, report it
 	if (!scene)
@@ -970,7 +979,7 @@ void renderScene(void) {
 		 
 
 	//glLoadMatrixf((float*)viewMatrix.data);
-	recursive_render(scene, scene->mRootNode);
+	recursive_render(scenes, scenes->mRootNode);
 
 	// FPS computation and display
 	frame++;
@@ -1374,10 +1383,10 @@ int init2D() {
 
 int init()
 {
-	if (!Import3DFromFile(modelname))
+	if (!Import3DFromFile(modelname,scenes))
 		return(0);
 
-	LoadGLTextures(scene);
+	LoadGLTextures(scenes);
 
 	glGetUniformBlockIndex = (PFNGLGETUNIFORMBLOCKINDEXPROC)glutGetProcAddress("glGetUniformBlockIndex");
 	glUniformBlockBinding = (PFNGLUNIFORMBLOCKBINDINGPROC)glutGetProcAddress("glUniformBlockBinding");
@@ -1388,7 +1397,7 @@ int init()
 
 	
 	
-	genVAOsAndUniformBuffer(scene);
+	genVAOsAndUniformBuffer(scenes);
 
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(0, 0, 0, 0.0f);
