@@ -145,7 +145,7 @@ char *fragmentFileName = "dirlightdiffambpix.frag";
 Assimp::Importer importer;
 
 // the global Assimp scene object
-const aiScene* scene = NULL;
+aiScene* scene = NULL;
 
 // scale factor for the model to fit in the window
 float scaleFactor;
@@ -521,7 +521,7 @@ bool Import3DFromFile(const std::string& pFile)
 		return false;
 	}
 
-	scene = importer.ReadFile(pFile, aiProcessPreset_TargetRealtime_Quality);
+	scene = const_cast<aiScene*>(importer.ReadFile(pFile, aiProcessPreset_TargetRealtime_Quality));
 
 	// If the import failed, report it
 	if (!scene)
@@ -546,7 +546,7 @@ bool Import3DFromFile(const std::string& pFile)
 }
 
 
-int LoadGLTextures(const aiScene* scene)
+int LoadGLTextures(aiScene* scene)
 {
 	ILboolean success;
 
@@ -647,7 +647,7 @@ void color4_to_float4(const aiColor4D *c, float f[4])
 
 
 
-void genVAOsAndUniformBuffer(const aiScene *sc) {
+void genVAOsAndUniformBuffer(aiScene *sc) {
 
 	struct MyMesh aMesh;
 	struct MyMaterial aMat;
@@ -803,7 +803,7 @@ void changeSize(int w, int h) {
 
 // Render Assimp Model
 
-void recursive_render(const aiScene *sc, const aiNode* nd)
+void recursive_render(aiScene *sc, const aiNode* nd)
 {
 
 	// Get node transformation matrix
