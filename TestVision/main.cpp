@@ -75,9 +75,13 @@
 
 
 //Scene and view info for each model
+
 struct MyModel{
 	aiScene* scene;
-	cv::Mat viewMatrix;
+	cv::Mat viewMatrix = cv::Mat::zeros(4, 4, CV_32F);
+	Assimp::Importer importer;
+	std::vector<struct MyMesh> myMeshes;
+	float scaleFactor;
 };
 
 
@@ -89,7 +93,7 @@ struct MyMesh {
 	int numFaces;
 };
 
-std::vector<struct MyMesh> myMeshes;
+
 
 // This is for a shader uniform block
 struct MyMaterial {
@@ -148,15 +152,14 @@ char *vertexFileName = "dirlightdiffambpix.vert";
 char *fragmentFileName = "dirlightdiffambpix.frag";
 
 // Create an instance of the Importer class
-Assimp::Importer importer;
+//Assimp::Importer importer;
 
 // the global Assimp scene object
-aiScene* scenes = NULL;
-aiScene* scenes2 = NULL;
+//aiScene* scenes = NULL;
 std::vector<MyModel> models;
 
 // scale factor for the model to fit in the window
-float scaleFactor;
+//float scaleFactor;
 
 
 // images / texture
@@ -200,7 +203,7 @@ double dist_[] = { 0, 0, 0, 0, 0 };
 cv::Mat distCoeffs = cv::Mat(5, 1, CV_64F, dist_).clone();
 cv::Mat imageMat;
 
-cv::Mat viewMatrix = cv::Mat::zeros(4, 4, CV_32F);
+//cv::Mat viewMatrix = cv::Mat::zeros(4, 4, CV_32F);
 
 
 
@@ -454,8 +457,7 @@ void buildProjectionMatrix(float fov, float ratio, float nearp, float farp) {
 // i.e. a vertical up vector along the Y axis (remember gluLookAt?)
 //
 
-void setCamera(float posX, float posY, float posZ,
-	float lookAtX, float lookAtY, float lookAtZ) {
+void setCamera(cv::Mat viewMatrix) {
 
 	//Set these to make the view matrix happy
 
@@ -516,7 +518,7 @@ void get_bounding_box(aiVector3D* min, aiVector3D* max, aiScene* scene)
 	get_bounding_box_for_node(scene->mRootNode, min, max, scene);
 }
 
-bool Import3DFromFile(const std::string& pFile, aiScene*& scene)
+bool Import3DFromFile(const std::string& pFile, aiScene*& scene, Assimp::Importer& importer, float& scaleFactor)
 {
 
 	//check if file exists
@@ -657,7 +659,7 @@ void color4_to_float4(const aiColor4D *c, float f[4])
 
 
 
-void genVAOsAndUniformBuffer(aiScene *sc) {
+void genVAOsAndUniformBuffer(aiScene *sc, std::vector<struct MyMesh> &myMeshes) {
 
 	struct MyMesh aMesh;
 	struct MyMaterial aMat;
@@ -813,7 +815,7 @@ void changeSize(int w, int h) {
 
 // Render Assimp Model
 
-void recursive_render(aiScene *sc, const aiNode* nd)
+void recursive_render(aiScene *sc, const aiNode* nd, std::vector<struct MyMesh> &myMeshes)
 {
 
 	// Get node transformation matrix
@@ -845,7 +847,7 @@ void recursive_render(aiScene *sc, const aiNode* nd)
 
 	// draw all children
 	for (unsigned int n = 0; n < nd->mNumChildren; ++n) {
-		recursive_render(sc, nd->mChildren[n]);
+		recursive_render(sc, nd->mChildren[n], myMeshes);
 	}
 	popMatrix();
 }
@@ -876,6 +878,7 @@ void detectArucoMarkers() {
 			tvecs);			// array of output translation vectors
 
 		for (unsigned int i = 0; i < markerIds.size(); i++) {
+			cv::Mat viewMatrix = cv::Mat::zeros(4, 4, CV_32F);;
 			cv::Vec3d r = rvecs[i];
 			cv::Vec3d t = tvecs[i];
 			if (markerIds[i] == 0) {
@@ -899,7 +902,34 @@ void detectArucoMarkers() {
 				viewMatrix = cvToGl * viewMatrix;
 				cv::transpose(viewMatrix, viewMatrix);
 
+				models[0].viewMatrix = viewMatrix;
 			}
+
+
+			if (markerIds[i] == 1) {
+				cv::Mat rot;
+				Rodrigues(rvecs[i], rot);
+				for (unsigned int row = 0; row < 3; ++row)
+				{
+					for (unsigned int col = 0; col < 3; ++col)
+					{
+						viewMatrix.at<float>(row, col) = (float)rot.at<double>(row, col);
+					}
+					viewMatrix.at<float>(row, 3) = (float)tvecs[i][row] * 0.1f;
+				}
+				viewMatrix.at<float>(3, 3) = 1.0f;
+
+				cv::Mat cvToGl = cv::Mat::zeros(4, 4, CV_32F);
+				cvToGl.at<float>(0, 0) = 1.0f;
+				cvToGl.at<float>(1, 1) = -1.0f; // Invert the y axis 
+				cvToGl.at<float>(2, 2) = -1.0f; // invert the z axis 
+				cvToGl.at<float>(3, 3) = 1.0f;
+				viewMatrix = cvToGl * viewMatrix;
+				cv::transpose(viewMatrix, viewMatrix);
+
+				models[1].viewMatrix = viewMatrix;
+			}
+
 
 			// Draw coordinate axes.
 			cv::aruco::drawAxis(imageMat,
@@ -958,28 +988,33 @@ void renderScene(void) {
 	//DRAW 3D MODEL
 	glClear( GL_DEPTH_BUFFER_BIT);
 		// set camera matrix
-	setCamera(camX, camY, camZ, 0, 0, 0);
+	for (int i = 0; i < models.size(); i++) {
+		setCamera(models[i].viewMatrix);
 
-	// set the model matrix to the identity Matrix
-	setIdentityMatrix(modelMatrix, 4);
+		// set the model matrix to the identity Matrix
+		setIdentityMatrix(modelMatrix, 4);
 
-	// sets the model matrix to a scale matrix so that the model fits in the window
-	scale(scaleFactor, scaleFactor, scaleFactor);
+		// sets the model matrix to a scale matrix so that the model fits in the window
+		scale(models[i].scaleFactor, models[i].scaleFactor, models[i].scaleFactor);
 
-	// keep rotating the model
-	rotate(90.0f, 1.0f, 0.0f, 0.0f);
+		// keep rotating the model
+		rotate(90.0f, 1.0f, 0.0f, 0.0f);
 
-	// use our shader
-	glUseProgram(program);
+		// use our shader
+		glUseProgram(program);
 
-	// we are only going to use texture unit 0
-	// unfortunately samplers can't reside in uniform blocks
-	// so we have set this uniform separately
-	glUniform1i(texUnit, 0);
-		 
+		// we are only going to use texture unit 0
+		// unfortunately samplers can't reside in uniform blocks
+		// so we have set this uniform separately
+		glUniform1i(texUnit, 0);
 
-	//glLoadMatrixf((float*)viewMatrix.data);
-	recursive_render(scenes, scenes->mRootNode);
+
+		//glLoadMatrixf((float*)viewMatrix.data);
+		recursive_render(models[i].scene, models[i].scene->mRootNode, models[i].myMeshes);
+
+		//recursive_render(models[1].scene, models[1].scene->mRootNode, models[1].myMeshes);
+	}
+	
 
 	// FPS computation and display
 	frame++;
@@ -1383,10 +1418,16 @@ int init2D() {
 
 int init()
 {
-	if (!Import3DFromFile(modelname,scenes))
-		return(0);
 
-	LoadGLTextures(scenes);
+	models.push_back(MyModel());
+	models.push_back(MyModel());
+	if (!Import3DFromFile(modelname, models[0].scene, models[0].importer, models[0].scaleFactor))
+		return(0);
+	Import3DFromFile("venus.obj", models[1].scene, models[1].importer, models[1].scaleFactor);
+
+	LoadGLTextures(models[0].scene);
+
+	LoadGLTextures(models[1].scene);
 
 	glGetUniformBlockIndex = (PFNGLGETUNIFORMBLOCKINDEXPROC)glutGetProcAddress("glGetUniformBlockIndex");
 	glUniformBlockBinding = (PFNGLUNIFORMBLOCKBINDINGPROC)glutGetProcAddress("glUniformBlockBinding");
@@ -1397,7 +1438,8 @@ int init()
 
 	
 	
-	genVAOsAndUniformBuffer(scenes);
+	genVAOsAndUniformBuffer(models[0].scene,models[0].myMeshes);
+	genVAOsAndUniformBuffer(models[1].scene, models[1].myMeshes);
 
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(0, 0, 0, 0.0f);
@@ -1502,13 +1544,13 @@ int main(int argc, char **argv) {
 	// cleaning up
 	textureIdMap.clear();
 
-	// clear myMeshes stuff
+	/*// clear myMeshes stuff
 	for (unsigned int i = 0; i < myMeshes.size(); ++i) {
 
 		glDeleteVertexArrays(1, &(myMeshes[i].vao));
 		glDeleteTextures(1, &(myMeshes[i].texIndex));
 		glDeleteBuffers(1, &(myMeshes[i].uniformBlockIndex));
-	}
+	}*/
 	// delete buffers
 	glDeleteBuffers(1, &matricesUniBuffer);
 
