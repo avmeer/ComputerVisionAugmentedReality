@@ -1410,6 +1410,22 @@ int init2D() {
 
 
 
+int loadModels() {
+	models.push_back(MyModel());
+	models.push_back(MyModel());
+	if (!Import3DFromFile(modelname, models[0].scene, models[0].importer, models[0].scaleFactor))
+		return(-1);
+	Import3DFromFile("spider.obj", models[1].scene, models[1].importer, models[1].scaleFactor);
+
+	LoadGLTextures(models[0].scene);
+
+	LoadGLTextures(models[1].scene);
+
+	genVAOsAndUniformBuffer(models[0].scene, models[0].myMeshes);
+	genVAOsAndUniformBuffer(models[1].scene, models[1].myMeshes);
+}
+
+
 // ------------------------------------------------------------
 //
 // Model loading and OpenGL setup
@@ -1418,16 +1434,9 @@ int init2D() {
 
 int init()
 {
+	loadModels();
 
-	models.push_back(MyModel());
-	models.push_back(MyModel());
-	if (!Import3DFromFile(modelname, models[0].scene, models[0].importer, models[0].scaleFactor))
-		return(0);
-	Import3DFromFile("venus.obj", models[1].scene, models[1].importer, models[1].scaleFactor);
 
-	LoadGLTextures(models[0].scene);
-
-	LoadGLTextures(models[1].scene);
 
 	glGetUniformBlockIndex = (PFNGLGETUNIFORMBLOCKINDEXPROC)glutGetProcAddress("glGetUniformBlockIndex");
 	glUniformBlockBinding = (PFNGLUNIFORMBLOCKBINDINGPROC)glutGetProcAddress("glUniformBlockBinding");
@@ -1438,8 +1447,6 @@ int init()
 
 	
 	
-	genVAOsAndUniformBuffer(models[0].scene,models[0].myMeshes);
-	genVAOsAndUniformBuffer(models[1].scene, models[1].myMeshes);
 
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(0, 0, 0, 0.0f);
