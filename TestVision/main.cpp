@@ -78,7 +78,7 @@
 
 struct MyModel{
 	aiScene* scene;
-	cv::Mat viewMatrix = cv::Mat::zeros(4, 4, CV_32F);
+	std::vector<cv::Mat> viewMatrix = { cv::Mat::zeros(4, 4, CV_32F),cv::Mat::zeros(4, 4, CV_32F),cv::Mat::zeros(4, 4, CV_32F) };
 	Assimp::Importer importer;
 	std::vector<struct MyMesh> myMeshes;
 	float scaleFactor;
@@ -881,53 +881,35 @@ void detectArucoMarkers() {
 			cv::Mat viewMatrix = cv::Mat::zeros(4, 4, CV_32F);;
 			cv::Vec3d r = rvecs[i];
 			cv::Vec3d t = tvecs[i];
-			if (markerIds[i] == 0) {
-				cv::Mat rot;
-				Rodrigues(rvecs[i], rot);
-				for (unsigned int row = 0; row < 3; ++row)
+
+
+			cv::Mat rot;
+			Rodrigues(rvecs[i], rot);
+			for (unsigned int row = 0; row < 3; ++row)
+			{
+				for (unsigned int col = 0; col < 3; ++col)
 				{
-					for (unsigned int col = 0; col < 3; ++col)
-					{
-						viewMatrix.at<float>(row, col) = (float)rot.at<double>(row, col);
-					}
-					viewMatrix.at<float>(row, 3) = (float)tvecs[i][row] * 0.1f;
+					viewMatrix.at<float>(row, col) = (float)rot.at<double>(row, col);
 				}
-				viewMatrix.at<float>(3, 3) = 1.0f;
+				viewMatrix.at<float>(row, 3) = (float)tvecs[i][row] * 0.1f;
+			}
+			viewMatrix.at<float>(3, 3) = 1.0f;
 
-				cv::Mat cvToGl = cv::Mat::zeros(4, 4, CV_32F);
-				cvToGl.at<float>(0, 0) = 1.0f;
-				cvToGl.at<float>(1, 1) = -1.0f; // Invert the y axis 
-				cvToGl.at<float>(2, 2) = -1.0f; // invert the z axis 
-				cvToGl.at<float>(3, 3) = 1.0f;
-				viewMatrix = cvToGl * viewMatrix;
-				cv::transpose(viewMatrix, viewMatrix);
+			cv::Mat cvToGl = cv::Mat::zeros(4, 4, CV_32F);
+			cvToGl.at<float>(0, 0) = 1.0f;
+			cvToGl.at<float>(1, 1) = -1.0f; // Invert the y axis 
+			cvToGl.at<float>(2, 2) = -1.0f; // invert the z axis 
+			cvToGl.at<float>(3, 3) = 1.0f;
+			viewMatrix = cvToGl * viewMatrix;
+			cv::transpose(viewMatrix, viewMatrix);
 
-				models[0].viewMatrix = viewMatrix;
+			if (markerIds[i] == 0) {
+				models[0].viewMatrix[0]=viewMatrix;
 			}
 
 
 			if (markerIds[i] == 1) {
-				cv::Mat rot;
-				Rodrigues(rvecs[i], rot);
-				for (unsigned int row = 0; row < 3; ++row)
-				{
-					for (unsigned int col = 0; col < 3; ++col)
-					{
-						viewMatrix.at<float>(row, col) = (float)rot.at<double>(row, col);
-					}
-					viewMatrix.at<float>(row, 3) = (float)tvecs[i][row] * 0.1f;
-				}
-				viewMatrix.at<float>(3, 3) = 1.0f;
-
-				cv::Mat cvToGl = cv::Mat::zeros(4, 4, CV_32F);
-				cvToGl.at<float>(0, 0) = 1.0f;
-				cvToGl.at<float>(1, 1) = -1.0f; // Invert the y axis 
-				cvToGl.at<float>(2, 2) = -1.0f; // invert the z axis 
-				cvToGl.at<float>(3, 3) = 1.0f;
-				viewMatrix = cvToGl * viewMatrix;
-				cv::transpose(viewMatrix, viewMatrix);
-
-				models[1].viewMatrix = viewMatrix;
+				models[1].viewMatrix[0]=viewMatrix;
 			}
 
 
@@ -989,7 +971,7 @@ void renderScene(void) {
 	glClear( GL_DEPTH_BUFFER_BIT);
 		// set camera matrix
 	for (int i = 0; i < models.size(); i++) {
-		setCamera(models[i].viewMatrix);
+		setCamera(models[i].viewMatrix[0]);
 
 		// set the model matrix to the identity Matrix
 		setIdentityMatrix(modelMatrix, 4);
