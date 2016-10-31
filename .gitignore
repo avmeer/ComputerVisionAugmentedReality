@@ -213,3 +213,5 @@ ModelManifest.xml
 
 #Linux object files
 *.o
+/TestVision.VC.db
+/TestVision.VC.VC.opendb

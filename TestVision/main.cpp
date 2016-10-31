@@ -961,7 +961,7 @@ void camTimer(int value) {
 	// Create Texture
 
 	//TODO THIS IS A MEMORY LEAK NEED TO DEAL WITH TEXTURES PROPERLY
-	glGenTextures(1, &textureID); // Texture name generation
+	//glGenTextures(1, &textureID); // Texture name generation
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, image->width, image->height, GL_RGB, GL_UNSIGNED_BYTE, image->imageData);
 
@@ -1300,6 +1300,8 @@ void setupShaders2D() {
 
 
 int init2D() {
+
+	glGenTextures(1, &textureID); // Texture name generation
 	// Data for the two triangles
 	float position[] = { -1.0f, -1.0f, 0.0f, 1.0f,
 		1.0f,  1.0f, 0.0f, 1.0f,
