@@ -985,7 +985,7 @@ void renderScene(void) {
 		// keep rotating the model
 		rotate(90.0f, 1.0f, 0.0f, 0.0f);
 
-		// use our shader
+		// use our shadershader
 		glUseProgram(program);
 
 		// we are only going to use texture unit 0
@@ -1546,13 +1546,14 @@ int main(int argc, char **argv) {
 	// cleaning up
 	textureIdMap.clear();
 
-	/*// clear myMeshes stuff
-	for (unsigned int i = 0; i < myMeshes.size(); ++i) {
-
-		glDeleteVertexArrays(1, &(myMeshes[i].vao));
-		glDeleteTextures(1, &(myMeshes[i].texIndex));
-		glDeleteBuffers(1, &(myMeshes[i].uniformBlockIndex));
-	}*/
+	// clear myMeshes stuff
+	for (unsigned int i = 0; i < models.size(); ++i) {
+		for (unsigned int j = 0; i < models[i].myMeshes.size(); ++j) {
+			glDeleteVertexArrays(1, &(models[i].myMeshes[j].vao));
+			glDeleteTextures(1, &(models[i].myMeshes[j].texIndex));
+			glDeleteBuffers(1, &(models[i].myMeshes[j].uniformBlockIndex));
+		}
+	}
 	// delete buffers
 	glDeleteBuffers(1, &matricesUniBuffer);
 
