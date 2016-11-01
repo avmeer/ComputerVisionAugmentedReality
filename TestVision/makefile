@@ -66,7 +66,7 @@ ifeq ($(USING_OPENGL), 1)
 
     # Linux and all other builds
     else
-        LIBS += -lassimp -lglut -lGL -lGLU -lIL -lILU  `pkg-config --cflags --libs opencv` -lGLEW
+        LIBS += -lassimp -lglut -lGL -lGLU -lIL -lILU  `pkg-config --cflags --libs opencv` -lGLEW -lpthread
     endif
 endif
 
@@ -96,7 +96,7 @@ depend:
 	$(CXX) $(CFLAGS) $(INCPATH) -c -o $@ $<
 
 $(TARGET): $(OBJECTS) 
-	$(CXX) $(CFLAGS) $(INCPATH) -o $@ $^ $(LIBPATH) $(LIBS)
+	$(CXX) $(CFLAGS) $(INCPATH) -o $@ $^ $(LIBPATH) $(LIBS) -std=c++11
 
 
 # DEPENDENCIES

@@ -149,8 +149,8 @@ GLuint vao, textureID;
 
 
 // Shader Names
-char *vertexFileName = "dirlightdiffambpix.vert";
-char *fragmentFileName = "dirlightdiffambpix.frag";
+char *vertexFileName = (char *)"dirlightdiffambpix.vert";
+char *fragmentFileName = (char *)"dirlightdiffambpix.frag";
 
 // Create an instance of the Importer class
 //Assimp::Importer importer;
@@ -207,8 +207,9 @@ cv::Mat imageMat;
 //cv::Mat viewMatrix = cv::Mat::zeros(4, 4, CV_32F);
 
 
-
+#ifndef M_PI
 #define M_PI       3.14159265358979323846f
+#endif
 
 
 static inline float
@@ -972,7 +973,7 @@ void renderScene(void) {
 	//DRAW 3D MODEL
 	glClear( GL_DEPTH_BUFFER_BIT);
 		// set camera matrix
-	for (int i = 0; i < models.size(); i++) {
+	for (unsigned int i = 0; i < models.size(); i++) {
 		setCamera(models[i].viewMatrix[0]);
 
 		// set the model matrix to the identity Matrix
@@ -1181,7 +1182,7 @@ void printProgramInfoLog(GLuint obj)
 
 GLuint setupShaders() {
 
-	char *vs = NULL, *fs = NULL, *fs2 = NULL;
+	char *vs = NULL, *fs = NULL;
 
 	GLuint p, v, f;
 
@@ -1247,8 +1248,8 @@ void setupShaders2D() {
 	f = glCreateShader(GL_FRAGMENT_SHADER);
 
 	// read the source code from file
-	vs = textFileRead("texture.vert");
-	fs = textFileRead("texture.frag");
+	vs = textFileRead((char *)"texture.vert");
+	fs = textFileRead((char *)"texture.frag");
 
 	// castings for calling the shader source function
 	const char * vv = vs;
@@ -1278,7 +1279,7 @@ void setupShaders2D() {
 	glLinkProgram(p);
 
 	GLint myLoc = glGetUniformLocation(p, "texUnit");
-	//glProgramUniform1d(p, myLoc, 0);
+	glProgramUniform1d(p, myLoc, 0);
 }
 
 
@@ -1321,8 +1322,8 @@ int init2D() {
 	f = glCreateShader(GL_FRAGMENT_SHADER);
 
 	// read the source code from file
-	vs = textFileRead("texture.vert");
-	fs = textFileRead("texture.frag");
+	vs = textFileRead((char *)"texture.vert");
+	fs = textFileRead((char *)"texture.frag");
 
 	// castings for calling the shader source function
 	const char * vv = vs;
@@ -1352,7 +1353,7 @@ int init2D() {
 	glLinkProgram(p);
 
 	GLint myLoc = glGetUniformLocation(p, "texUnit");
-	//glProgramUniform1d(p, myLoc, 0);
+	glProgramUniform1d(p, myLoc, 0);
 
 	GLuint vertexLoc, texCoordLoc;
 
@@ -1413,6 +1414,8 @@ int loadModels() {
 
 	genVAOsAndUniformBuffer(models[0].scene, models[0].myMeshes);
 	genVAOsAndUniformBuffer(models[1].scene, models[1].myMeshes);
+
+	return 0;
 }
 
 
