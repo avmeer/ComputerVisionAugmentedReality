@@ -852,6 +852,17 @@ void detectArucoMarkers() {
 
 
 
+void prepareTexture(int w, int h, unsigned char* data) {
+
+	/* Create and load texture to OpenGL */
+	glBindTexture(GL_TEXTURE_2D, textureID); 
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 
+                w, h, 
+                0, GL_RGB, GL_UNSIGNED_BYTE,
+                data); 
+	glGenerateMipmap(GL_TEXTURE_2D);
+}
+
 void camTimer() {
 
 	cap >> imageMat; // get image from camera
@@ -864,15 +875,11 @@ void camTimer() {
 
 }
 
+
 void renderScene(void) {
-
-
-
 	// Create Texture
-	glBindTexture(GL_TEXTURE_2D, textureID);
-	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, imageMat.cols, imageMat.rows, GL_RGB, GL_UNSIGNED_BYTE, imageMat.data);
-
-
+	prepareTexture(imageMat.cols, imageMat.rows,imageMat.data);
+	//gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, imageMat.cols, imageMat.rows, GL_RGB, GL_UNSIGNED_BYTE, imageMat.data);
 	// clear the framebuffer (color and depth)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
