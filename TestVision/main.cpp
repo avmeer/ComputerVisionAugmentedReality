@@ -203,13 +203,6 @@ int printOglError(char *file, int line)
 	return retCode;
 }
 
-
-// ----------------------------------------------------
-// VECTOR STUFF
-//
-
-
-
 // ----------------------------------------------------
 // MATRIX STUFF
 //

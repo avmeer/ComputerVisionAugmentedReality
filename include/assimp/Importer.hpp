@@ -42,17 +42,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** @file  Importer.hpp
  *  @brief Defines the C++-API to the Open Asset Import Library.
  */
-#pragma once
-#ifndef AI_ASSIMP_HPP_INC
-#define AI_ASSIMP_HPP_INC
+#ifndef INCLUDED_AI_ASSIMP_HPP
+#define INCLUDED_AI_ASSIMP_HPP
 
 #ifndef __cplusplus
 #   error This header requires C++ to be used. Use assimp.h for plain C.
-#endif // __cplusplus
+#endif
 
 // Public ASSIMP data structures
-#include <assimp/types.h>
-#include <assimp/config.h>
+#include "types.h"
+#include "config.h"
 
 namespace Assimp    {
     // =======================================================================
@@ -119,7 +118,7 @@ public:
     /**
      *  @brief The upper limit for hints.
      */
-    static const unsigned int MaxLenHint = 200;
+    static const unsigned int MaxLenHint = 200; 
 
 public:
 
@@ -224,7 +223,7 @@ public:
     /** Set a floating-point configuration property.
      * @see SetPropertyInteger()
      */
-    bool SetPropertyFloat(const char* szName, ai_real fValue);
+    bool SetPropertyFloat(const char* szName, float fValue);
 
     // -------------------------------------------------------------------
     /** Set a string configuration property.
@@ -269,8 +268,8 @@ public:
     /** Get a floating-point configuration property
      * @see GetPropertyInteger()
      */
-    ai_real GetPropertyFloat(const char* szName,
-        ai_real fErrorReturn = 10e10) const;
+    float GetPropertyFloat(const char* szName,
+        float fErrorReturn = 10e10f) const;
 
     // -------------------------------------------------------------------
     /** Get a string configuration property
@@ -659,5 +658,4 @@ AI_FORCE_INLINE bool Importer::IsExtensionSupported(const std::string& szExtensi
 }
 
 } // !namespace Assimp
-
-#endif // AI_ASSIMP_HPP_INC
+#endif // INCLUDED_AI_ASSIMP_HPP

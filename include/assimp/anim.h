@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  @brief Defines the data structures in which the imported animations
  *  are returned.
  */
-#pragma once
 #ifndef AI_ANIM_H_INC
 #define AI_ANIM_H_INC
 
@@ -255,6 +254,7 @@ struct aiNodeAnim
      * scaling and one position key. */
     C_STRUCT aiQuatKey* mRotationKeys;
 
+
     /** The number of scaling keys */
     unsigned int mNumScalingKeys;
 
@@ -264,6 +264,7 @@ struct aiNodeAnim
      * If there are scaling keys, there will also be at least one
      * position and one rotation key.*/
     C_STRUCT aiVectorKey* mScalingKeys;
+
 
     /** Defines how the animation behaves before the first
      *  key is encountered.
@@ -419,7 +420,7 @@ struct Interpolator
      *  The interpolation algorithm depends on the type of the operands.
      *  aiQuaternion's and aiQuatKey's SLERP, the rest does a simple
      *  linear interpolation. */
-    void operator () (T& out,const T& a, const T& b, ai_real d) const {
+    void operator () (T& out,const T& a, const T& b, float d) const {
         out = a + (b-a)*d;
     }
 }; // ! Interpolator <T>
@@ -429,7 +430,7 @@ struct Interpolator
 template <>
 struct Interpolator <aiQuaternion>  {
     void operator () (aiQuaternion& out,const aiQuaternion& a,
-        const aiQuaternion& b, ai_real d) const
+        const aiQuaternion& b, float d) const
     {
         aiQuaternion::Interpolate(out,a,b,d);
     }
@@ -438,7 +439,7 @@ struct Interpolator <aiQuaternion>  {
 template <>
 struct Interpolator <unsigned int>  {
     void operator () (unsigned int& out,unsigned int a,
-        unsigned int b, ai_real d) const
+        unsigned int b, float d) const
     {
         out = d>0.5f ? b : a;
     }
@@ -447,7 +448,7 @@ struct Interpolator <unsigned int>  {
 template <>
 struct Interpolator  <aiVectorKey>  {
     void operator () (aiVector3D& out,const aiVectorKey& a,
-        const aiVectorKey& b, ai_real d) const
+        const aiVectorKey& b, float d) const
     {
         Interpolator<aiVector3D> ipl;
         ipl(out,a.mValue,b.mValue,d);
@@ -457,7 +458,7 @@ struct Interpolator  <aiVectorKey>  {
 template <>
 struct Interpolator <aiQuatKey>     {
     void operator () (aiQuaternion& out, const aiQuatKey& a,
-        const aiQuatKey& b, ai_real d) const
+        const aiQuatKey& b, float d) const
     {
         Interpolator<aiQuaternion> ipl;
         ipl(out,a.mValue,b.mValue,d);
@@ -467,7 +468,7 @@ struct Interpolator <aiQuatKey>     {
 template <>
 struct Interpolator <aiMeshKey>     {
     void operator () (unsigned int& out, const aiMeshKey& a,
-        const aiMeshKey& b, ai_real d) const
+        const aiMeshKey& b, float d) const
     {
         Interpolator<unsigned int> ipl;
         ipl(out,a.mValue,b.mValue,d);
