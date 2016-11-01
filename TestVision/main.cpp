@@ -1288,20 +1288,14 @@ int init2D() {
 	glGenTextures(1, &textureID); // Texture name generation
 	// Data for the two triangles
 	float position[] = { 
-
-		-1.0f, -1.0f, 0.0f, 1.0f,
+		1.0f, -1.0f, 0.0f, 1.0f,
+		-1.0f, 1.0f, 0.0f, 1.0f,
 		1.0f,  1.0f, 0.0f, 1.0f,
-		-1.0f,  1.0f, 0.0f, 1.0f,
 
-		1.0f,  1.0f, 0.0f, 1.0f,
-		-1.0f, -1.0f, 0.0f, 1.0f,
-		1.0f, -1.0f, 0.5f, 1.0f,
+		-1.0f, 1.0f, 0.0f, 1.0f,
+		1.0f, -1.0f, 0.0f, 1.0f,
+		-1.0f,  -1.0f, 0.0f, 1.0f,
 		
-
-
-
-		
-
 	};
 
 	float textureCoord[] = {
