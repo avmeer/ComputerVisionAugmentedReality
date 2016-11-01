@@ -931,18 +931,12 @@ void detectArucoMarkers() {
 void camTimer() {
 
 	cap >> imageMat; // get image from camera
+	if(!imageMat.empty()){
+	// Convert to RGB
 	cv::cvtColor(imageMat, imageMat, CV_BGR2RGB);
 	detectArucoMarkers();
-
-	//cv::flip(imageMat, imageMat, 0);
-
-
-	// Convert to RGB
-	
-
-
 	camTimer();
-	//glutTimerFunc(1000.0f / 15.0f, camTimer, 0);
+	}
 
 }
 
@@ -1556,7 +1550,6 @@ int main(int argc, char **argv) {
 	}
 	// delete buffers
 	glDeleteBuffers(1, &matricesUniBuffer);
-
-	return(0);
+	exit(0);
 }
 
