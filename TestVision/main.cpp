@@ -72,6 +72,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <thread>         // std::thread
 
 
 //Scene and view info for each model
@@ -926,32 +927,33 @@ void detectArucoMarkers() {
 
 
 
-void camTimer(int value) {
+void camTimer() {
+
 	cap >> imageMat; // get image from camera
+	cv::cvtColor(imageMat, imageMat, CV_BGR2RGB);
 	detectArucoMarkers();
 
-	IplImage *image;
-	IplImage copy = imageMat;
-	image = &copy;
-
-	cvFlip(image, image, 0);
+	//cv::flip(imageMat, imageMat, 0);
 
 
 	// Convert to RGB
-	cvCvtColor(image, image, CV_BGR2RGB);
+	
 
-	// Create Texture
 
-	//TODO THIS IS A MEMORY LEAK NEED TO DEAL WITH TEXTURES PROPERLY
-	//glGenTextures(1, &textureID); // Texture name generation
-	glBindTexture(GL_TEXTURE_2D, textureID);
-	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, image->width, image->height, GL_RGB, GL_UNSIGNED_BYTE, image->imageData);
+	camTimer();
+	//glutTimerFunc(1000.0f / 15.0f, camTimer, 0);
 
-	glutTimerFunc(1000.0f / 15.0f, camTimer, 0);
 }
 
 
 void renderScene(void) {
+
+
+
+	// Create Texture
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, imageMat.cols, imageMat.rows, GL_RGB, GL_UNSIGNED_BYTE, imageMat.data);
+
 
 // clear the framebuffer (color and depth)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1285,23 +1287,33 @@ int init2D() {
 
 	glGenTextures(1, &textureID); // Texture name generation
 	// Data for the two triangles
-	float position[] = { -1.0f, -1.0f, 0.0f, 1.0f,
+	float position[] = { 
+
+		-1.0f, -1.0f, 0.0f, 1.0f,
 		1.0f,  1.0f, 0.0f, 1.0f,
 		-1.0f,  1.0f, 0.0f, 1.0f,
 
 		1.0f,  1.0f, 0.0f, 1.0f,
 		-1.0f, -1.0f, 0.0f, 1.0f,
 		1.0f, -1.0f, 0.5f, 1.0f,
+		
+
+
+
+		
+
 	};
 
 	float textureCoord[] = {
+		1.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+
 		0.0f, 0.0f,
 		1.0f, 1.0f,
 		0.0f, 1.0f,
 
-		1.0f, 1.0f,
-		0.0f, 0.0f,
-		1.0f, 0.0f };
+		};
 
 
 	// variables to hold the shader's source code
@@ -1492,7 +1504,9 @@ int main(int argc, char **argv) {
 	glutDisplayFunc(renderScene);
 	glutReshapeFunc(changeSize);
 	glutTimerFunc(1000.0f / 60.0f, myTimer, 0);
-	glutTimerFunc(1000.0f / 15.0f, camTimer, 0);
+	std::thread t1(camTimer);
+	//(1000.0f / 15.0f, camTimer, 0);
+	
 
 	//	Mouse and Keyboard Callbacks
 	glutKeyboardFunc(processKeys);
