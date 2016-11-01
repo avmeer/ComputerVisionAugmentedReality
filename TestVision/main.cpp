@@ -1,35 +1,12 @@
 //
 // Lighthouse3D.com OpenGL 3.3 + GLSL 3.3 Sample
+// http://www.lighthouse3d.com/cg-topics/code-samples/importing-3d-models-with-assimp/
+// Lighthouse3D.com OpenGL 3.3 Loading an Image File and Creating a Texture
+// http://www.lighthouse3d.com/2013/01/loading-and-image-file-and-creating-a-texture/
 //
-// Loading and displaying a Textured Model
-//
-// Uses:
-//  Assimp lybrary for model loading
-//		http://assimp.sourceforge.net/
-//  Devil for image loading
-//		http://openil.sourceforge.net/
-//	Uniform Blocks
-//  Vertex Array Objects
-//
-// Some parts of the code are strongly based on the Assimp 
-// SimpleTextureOpenGL sample that comes with the Assimp 
-// distribution, namely the code that relates to loading the images
-// and the model.
-//
-// The code was updated and modified to be compatible with 
-// OpenGL 3.3 CORE version
-//
-// This demo was built for learning purposes only. 
-// Some code could be severely optimised, but I tried to 
-// keep as simple and clear as possible.
-//
-// The code comes with no warranties, use it at your own risk.
-// You may use it, or parts of it, wherever you want. 
-//
-// If you do use it I would love to hear about it. Just post a comment
-// at Lighthouse3D.com
+// C++ 11 Multithreading Tutorial
+// https://solarianprogrammer.com/2011/12/16/cpp-11-thread-tutorial/
 
-// Have Fun :-)
 
 #ifdef _WIN32
 #pragma comment(lib,"assimp.lib")
@@ -77,12 +54,12 @@
 
 //Scene and view info for each model
 
-struct MyModel{
-	aiScene* scene;
+struct MyModel {
+	aiScene* scene; // the global Assimp scene object for each model
 	std::vector<cv::Mat> viewMatrix = { cv::Mat::zeros(4, 4, CV_32F),cv::Mat::zeros(4, 4, CV_32F),cv::Mat::zeros(4, 4, CV_32F) };
-	Assimp::Importer importer;
+	Assimp::Importer importer; // Create an instance of the Importer class
 	std::vector<struct MyMesh> myMeshes;
-	float scaleFactor;
+	float scaleFactor; // scale factor for the model to fit in the window
 };
 
 
@@ -152,15 +129,8 @@ GLuint vao, textureID;
 char *vertexFileName = (char *)"dirlightdiffambpix.vert";
 char *fragmentFileName = (char *)"dirlightdiffambpix.frag";
 
-// Create an instance of the Importer class
-//Assimp::Importer importer;
-
-// the global Assimp scene object
-//aiScene* scenes = NULL;
 std::vector<MyModel> models;
 
-// scale factor for the model to fit in the window
-//float scaleFactor;
 
 
 // images / texture
@@ -170,18 +140,6 @@ std::map<std::string, GLuint> textureIdMap;
 
 // Replace the model name by your model's filename
 static const std::string modelname = "jeep1.ms3d";
-
-
-// Camera Position
-float camX = 0, camY = 0, camZ = 5;
-
-// Mouse Tracking Variables
-int startX, startY, tracking = 0;
-
-// Camera Spherical Coordinates
-float alpha = 0.0f, beta = 0.0f;
-float r = 5.0f;
-
 
 
 //our aruco variables
@@ -199,12 +157,11 @@ double K_[3][3] =
 { 0, 0, 1 } };
 cv::Mat K = cv::Mat(3, 3, CV_64F, K_).clone();
 const float markerLength = 1.75;
+
 // Distortion coeffs (fill in your actual values here).
 double dist_[] = { 0, 0, 0, 0, 0 };
 cv::Mat distCoeffs = cv::Mat(5, 1, CV_64F, dist_).clone();
 cv::Mat imageMat;
-
-//cv::Mat viewMatrix = cv::Mat::zeros(4, 4, CV_32F);
 
 
 #ifndef M_PI
@@ -251,25 +208,6 @@ int printOglError(char *file, int line)
 // VECTOR STUFF
 //
 
-
-// res = a cross b;
-void crossProduct(float *a, float *b, float *res) {
-
-	res[0] = a[1] * b[2] - b[1] * a[2];
-	res[1] = a[2] * b[0] - b[2] * a[0];
-	res[2] = a[0] * b[1] - b[0] * a[1];
-}
-
-
-// Normalize a vec3
-void normalize(float *a) {
-
-	float mag = sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
-
-	a[0] /= mag;
-	a[1] /= mag;
-	a[2] /= mag;
-}
 
 
 // ----------------------------------------------------
@@ -507,14 +445,12 @@ void get_bounding_box_for_node(const aiNode* nd,
 	}
 
 	for (n = 0; n < nd->mNumChildren; ++n) {
-		get_bounding_box_for_node(nd->mChildren[n], min, max,scene);
+		get_bounding_box_for_node(nd->mChildren[n], min, max, scene);
 	}
 }
 
-
 void get_bounding_box(aiVector3D* min, aiVector3D* max, aiScene* scene)
 {
-
 	min->x = min->y = min->z = 1e10f;
 	max->x = max->y = max->z = -1e10f;
 	get_bounding_box_for_node(scene->mRootNode, min, max, scene);
@@ -559,7 +495,6 @@ bool Import3DFromFile(const std::string& pFile, aiScene*& scene, Assimp::Importe
 	return true;
 }
 
-
 int LoadGLTextures(aiScene* scene)
 {
 	ILboolean success;
@@ -568,7 +503,7 @@ int LoadGLTextures(aiScene* scene)
 	ilInit();
 
 	/* scan scene's materials for textures */
-	for (unsigned int m = 0; m<scene->mNumMaterials; ++m)
+	for (unsigned int m = 0; m < scene->mNumMaterials; ++m)
 	{
 		int texIndex = 0;
 		aiString path;	// filename
@@ -635,8 +570,6 @@ int LoadGLTextures(aiScene* scene)
 	return true;
 }
 
-
-
 //// Can't send color down as a pointer to aiColor4D because AI colors are ABGR.
 //void Color4f(const aiColor4D *color)
 //{
@@ -658,8 +591,6 @@ void color4_to_float4(const aiColor4D *c, float f[4])
 	f[2] = c->b;
 	f[3] = c->a;
 }
-
-
 
 void genVAOsAndUniformBuffer(aiScene *sc, std::vector<struct MyMesh> &myMeshes) {
 
@@ -906,12 +837,12 @@ void detectArucoMarkers() {
 			cv::transpose(viewMatrix, viewMatrix);
 
 			if (markerIds[i] == 0) {
-				models[0].viewMatrix[0]=viewMatrix;
+				models[0].viewMatrix[0] = viewMatrix;
 			}
 
 
 			if (markerIds[i] == 1) {
-				models[1].viewMatrix[0]=viewMatrix;
+				models[1].viewMatrix[0] = viewMatrix;
 			}
 
 
@@ -931,15 +862,14 @@ void detectArucoMarkers() {
 void camTimer() {
 
 	cap >> imageMat; // get image from camera
-	if(!imageMat.empty()){
-	// Convert to RGB
-	cv::cvtColor(imageMat, imageMat, CV_BGR2RGB);
-	detectArucoMarkers();
-	camTimer();
+	if (!imageMat.empty()) {
+		// Convert to RGB
+		cv::cvtColor(imageMat, imageMat, CV_BGR2RGB);
+		detectArucoMarkers();
+		camTimer();
 	}
 
 }
-
 
 void renderScene(void) {
 
@@ -950,7 +880,7 @@ void renderScene(void) {
 	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, imageMat.cols, imageMat.rows, GL_RGB, GL_UNSIGNED_BYTE, imageMat.data);
 
 
-// clear the framebuffer (color and depth)
+	// clear the framebuffer (color and depth)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//DRAW 2D VIDEO
@@ -965,8 +895,8 @@ void renderScene(void) {
 
 
 	//DRAW 3D MODEL
-	glClear( GL_DEPTH_BUFFER_BIT);
-		// set camera matrix
+	glClear(GL_DEPTH_BUFFER_BIT);
+	// set camera matrix
 	for (unsigned int i = 0; i < models.size(); i++) {
 		setCamera(models[i].viewMatrix[0]);
 
@@ -993,7 +923,7 @@ void renderScene(void) {
 
 		//recursive_render(models[1].scene, models[1].scene->mRootNode, models[1].myMeshes);
 	}
-	
+
 
 	// FPS computation and display
 	frame++;
@@ -1025,107 +955,9 @@ void processKeys(unsigned char key, int xx, int yy)
 
 		glutLeaveMainLoop();
 		break;
-
-	case 'z': r -= 0.1f; break;
-	case 'x': r += 0.1f; break;
 	case 'm': glEnable(GL_MULTISAMPLE); break;
 	case 'n': glDisable(GL_MULTISAMPLE); break;
 	}
-	camX = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-	camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-	camY = r *   						     sin(beta * 3.14f / 180.0f);
-
-	//  uncomment this if not using an idle func
-	//	glutPostRedisplay();
-}
-
-
-// ------------------------------------------------------------
-//
-// Mouse Events
-//
-
-void processMouseButtons(int button, int state, int xx, int yy)
-{
-	// start tracking the mouse
-	if (state == GLUT_DOWN) {
-		startX = xx;
-		startY = yy;
-		if (button == GLUT_LEFT_BUTTON)
-			tracking = 1;
-		else if (button == GLUT_RIGHT_BUTTON)
-			tracking = 2;
-	}
-
-	//stop tracking the mouse
-	else if (state == GLUT_UP) {
-		if (tracking == 1) {
-			alpha += (startX - xx);
-			beta += (yy - startY);
-		}
-		else if (tracking == 2) {
-			r += (yy - startY) * 0.01f;
-		}
-		tracking = 0;
-	}
-}
-
-// Track mouse motion while buttons are pressed
-
-void processMouseMotion(int xx, int yy)
-{
-
-	int deltaX, deltaY;
-	float alphaAux, betaAux;
-	float rAux;
-
-	deltaX = startX - xx;
-	deltaY = yy - startY;
-
-	// left mouse button: move camera
-	if (tracking == 1) {
-
-
-		alphaAux = alpha + deltaX;
-		betaAux = beta + deltaY;
-
-		if (betaAux > 85.0f)
-			betaAux = 85.0f;
-		else if (betaAux < -85.0f)
-			betaAux = -85.0f;
-
-		rAux = r;
-
-		camX = rAux * cos(betaAux * 3.14f / 180.0f) * sin(alphaAux * 3.14f / 180.0f);
-		camZ = rAux * cos(betaAux * 3.14f / 180.0f) * cos(alphaAux * 3.14f / 180.0f);
-		camY = rAux * sin(betaAux * 3.14f / 180.0f);
-	}
-	// right mouse button: zoom
-	else if (tracking == 2) {
-
-		alphaAux = alpha;
-		betaAux = beta;
-		rAux = r + (deltaY * 0.01f);
-
-		camX = rAux * cos(betaAux * 3.14f / 180.0f) * sin(alphaAux * 3.14f / 180.0f);
-		camZ = rAux * cos(betaAux * 3.14f / 180.0f) * cos(alphaAux * 3.14f / 180.0f);
-		camY = rAux * sin(betaAux * 3.14f / 180.0f);
-	}
-
-
-	//  uncomment this if not using an idle func
-	//	glutPostRedisplay();
-}
-
-
-
-
-void mouseWheel(int wheel, int direction, int x, int y) {
-
-	r += direction * 0.1f;
-	camX = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-	camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-	camY = r *   						     sin(beta * 3.14f / 180.0f);
 }
 
 
@@ -1282,7 +1114,7 @@ int init2D() {
 
 	glGenTextures(1, &textureID); // Texture name generation
 	// Data for the two triangles
-	float position[] = { 
+	float position[] = {
 		1.0f, -1.0f, 0.0f, 1.0f,
 		-1.0f, 1.0f, 0.0f, 1.0f,
 		1.0f,  1.0f, 0.0f, 1.0f,
@@ -1290,7 +1122,7 @@ int init2D() {
 		-1.0f, 1.0f, 0.0f, 1.0f,
 		1.0f, -1.0f, 0.0f, 1.0f,
 		-1.0f,  -1.0f, 0.0f, 1.0f,
-		
+
 	};
 
 	float textureCoord[] = {
@@ -1302,7 +1134,7 @@ int init2D() {
 		1.0f, 1.0f,
 		0.0f, 1.0f,
 
-		};
+	};
 
 
 	// variables to hold the shader's source code
@@ -1357,24 +1189,24 @@ int init2D() {
 
 	// Generate and bind a Vertex Array Object
 	// this encapsulates the buffers used for drawing the triangle
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
 
 	// Generate two slots for the position and color buffers
-    GLuint buffers[2];
-    glGenBuffers(2, buffers);
+	GLuint buffers[2];
+	glGenBuffers(2, buffers);
 
-    // bind buffer for vertices and copy data into buffer
-    glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(position), position, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(vertexLoc);
-    glVertexAttribPointer(vertexLoc, 4, GL_FLOAT, 0, 0, 0);
- 
-    // bind buffer for normals and copy data into buffer
-    glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(textureCoord), textureCoord, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(texCoordLoc);
-    glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, 0, 0, 0);
+	// bind buffer for vertices and copy data into buffer
+	glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(position), position, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(vertexLoc);
+	glVertexAttribPointer(vertexLoc, 4, GL_FLOAT, 0, 0, 0);
+
+	// bind buffer for normals and copy data into buffer
+	glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(textureCoord), textureCoord, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(texCoordLoc);
+	glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, 0, 0, 0);
 
 
 	glGenTextures(1, &textureID); //Gen a new texture and store the handle in texname
@@ -1386,8 +1218,7 @@ int init2D() {
 	//allocate memory on the graphics card for the texture. It's fine if
 	//texture_data doesn't have any data in it, the texture will just appear black
 	//until you update it.
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB,
-		GL_UNSIGNED_BYTE, {});
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB,GL_UNSIGNED_BYTE, {});
 
 
 	return true;
@@ -1432,8 +1263,8 @@ int init()
 	glBindBufferRange = (PFNGLBINDBUFFERRANGEPROC)glutGetProcAddress("glBindBufferRange");
 	glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC)glutGetProcAddress("glDeleteVertexArrays");
 
-	
-	
+
+
 
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(0, 0, 0, 0.0f);
@@ -1460,21 +1291,13 @@ int init()
 void myTimer(int value) {
 	glutPostRedisplay();
 	glutTimerFunc(1000.0f / 60.0f, myTimer, 0);
-	
+
 }
-
-
-
-
-
-
 
 // ------------------------------------------------------------
 //
 // Main function
 //
-
-
 int main(int argc, char **argv) {
 
 	//  GLUT initialization
@@ -1497,14 +1320,10 @@ int main(int argc, char **argv) {
 	glutTimerFunc(1000.0f / 60.0f, myTimer, 0);
 	std::thread t1(camTimer);
 	//(1000.0f / 15.0f, camTimer, 0);
-	
+
 
 	//	Mouse and Keyboard Callbacks
 	glutKeyboardFunc(processKeys);
-	glutMouseFunc(processMouseButtons);
-	glutMotionFunc(processMouseMotion);
-
-	glutMouseWheelFunc(mouseWheel);
 
 	//	Init GLEW
 	//glewExperimental = GL_TRUE;
@@ -1532,7 +1351,7 @@ int main(int argc, char **argv) {
 
 	program = setupShaders();
 	//setupShaders2D();
-	
+
 
 	//  GLUT main loop
 	glutMainLoop();
