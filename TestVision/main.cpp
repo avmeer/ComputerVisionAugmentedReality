@@ -834,6 +834,7 @@ void detectArucoMarkers(cv::Mat &image) {
 		cv::aruco::drawDetectedMarkers(image, markerCorners, markerIds);
 
 		std::vector< cv::Vec3d > rvecs, tvecs;
+		cv::Mat viewMatrixavg = cv::Mat::zeros(4, 4, CV_32F);
 		cv::aruco::estimatePoseSingleMarkers(
 			markerCorners,	// vector of already detected markers corners
 			markerLength,	// length of the marker's side
@@ -869,7 +870,16 @@ void detectArucoMarkers(cv::Mat &image) {
 			cv::transpose(viewMatrix, viewMatrix);
 
 			if (modelMap.count(markerIds[i])) {
-				models[markerIds[i]].viewMatrix[0] = viewMatrix;
+				for (int jj = 0;jj < 4;jj++) {
+					for (int yy = 0; yy < 4;yy++) {
+						viewMatrixavg.at<float>(jj, yy) = (viewMatrix.at<float>(jj, yy) + models[markerIds[i]].viewMatrix[1].at<float>(jj, yy) + models[markerIds[i]].viewMatrix[2].at<float>(jj, yy)) / 3;
+					}
+				}
+
+				
+				models[markerIds[i]].viewMatrix[0] = viewMatrixavg;
+				models[markerIds[i]].viewMatrix[2] = models[markerIds[i]].viewMatrix[1];
+				models[markerIds[i]].viewMatrix[1] = viewMatrix;
 			}
 
 			// Draw coordinate axes.
