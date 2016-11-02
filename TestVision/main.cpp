@@ -54,6 +54,9 @@
 #include <vector>
 #include <iostream>
 #include <thread>         // std::thread
+#include <map>
+
+using namespace std;
 
 
 //Scene and view info for each model
@@ -64,6 +67,7 @@ struct MyModel {
 	Assimp::Importer importer; // Create an instance of the Importer class
 	std::vector<struct MyMesh> myMeshes;
 	float scaleFactor; // scale factor for the model to fit in the window
+	int marker; //marker corresponding to this model
 };
 
 
@@ -133,7 +137,7 @@ GLuint vao, textureID;
 char *vertexFileName = (char *)"dirlightdiffambpix.vert";
 char *fragmentFileName = (char *)"dirlightdiffambpix.frag";
 
-std::vector<MyModel> models;
+std::map<int, MyModel> models;
 
 
 
@@ -143,7 +147,9 @@ std::vector<MyModel> models;
 std::map<std::string, GLuint> textureIdMap;
 
 // Replace the model name by your model's filename
-static const std::string modelname = "jeep1.ms3d";
+//static const std::string modelname = "jeep1.ms3d";
+
+std::map<int, string> modelMap;
 static const std::string modelDir = "../models/";
 
 
@@ -453,6 +459,32 @@ void get_bounding_box(aiVector3D* min, aiVector3D* max, aiScene* scene)
 	max->x = max->y = max->z = -1e10f;
 	get_bounding_box_for_node(scene->mRootNode, min, max, scene);
 }
+
+
+bool loadModelFile(string filename) {
+	filename = modelDir + filename;
+	//open file stream to the file
+	ifstream infile(filename);
+
+	//if opened successfully, read in the data
+	if (infile.is_open()) {
+		int marker;
+		string file;
+
+		while (infile >> file >> marker)
+		{
+			modelMap[marker] = file;
+		}
+	}
+	else {
+		//if here, file was not opened correctly, notify user
+		printf("Error opening file,%s exiting",filename);
+		exit(0);
+	}
+	return true;
+}
+
+
 
 bool Import3DFromFile(const std::string& pFile, aiScene*& scene, Assimp::Importer& importer, float& scaleFactor)
 {
@@ -835,15 +867,9 @@ void detectArucoMarkers() {
 			viewMatrix = cvToGl * viewMatrix;
 			cv::transpose(viewMatrix, viewMatrix);
 
-			if (markerIds[i] == 0) {
-				models[0].viewMatrix[0] = viewMatrix;
+			if (modelMap.count(markerIds[i])) {
+				models[markerIds[i]].viewMatrix[0] = viewMatrix;
 			}
-
-
-			if (markerIds[i] == 1) {
-				models[1].viewMatrix[0] = viewMatrix;
-			}
-
 
 			// Draw coordinate axes.
 			cv::aruco::drawAxis(imageMat,
@@ -904,14 +930,23 @@ void renderScene(void) {
 	//DRAW 3D MODEL
 	glClear(GL_DEPTH_BUFFER_BIT);
 	// set camera matrix
-	for (unsigned int i = 0; i < models.size(); i++) {
-		setCamera(models[i].viewMatrix[0]);
+
+
+	map<int, MyModel>::iterator it;
+
+	for (it = models.begin(); it != models.end(); it++)
+	{
+		int markerNum = it->first;
+		MyModel currentModel = it->second;
+
+
+		setCamera(currentModel.viewMatrix[0]);
 
 		// set the model matrix to the identity Matrix
 		setIdentityMatrix(modelMatrix, 4);
 
 		// sets the model matrix to a scale matrix so that the model fits in the window
-		scale(models[i].scaleFactor, models[i].scaleFactor, models[i].scaleFactor);
+		scale(currentModel.scaleFactor, currentModel.scaleFactor, currentModel.scaleFactor);
 
 		// keep rotating the model
 		rotate(90.0f, 1.0f, 0.0f, 0.0f);
@@ -926,10 +961,14 @@ void renderScene(void) {
 
 
 		//glLoadMatrixf((float*)viewMatrix.data);
-		recursive_render(models[i].scene, models[i].scene->mRootNode, models[i].myMeshes);
+		recursive_render(currentModel.scene, currentModel.scene->mRootNode, currentModel.myMeshes);
 
-		//recursive_render(models[1].scene, models[1].scene->mRootNode, models[1].myMeshes);
 	}
+
+	
+
+
+	
 
 
 	// FPS computation and display
@@ -1233,18 +1272,28 @@ int init2D() {
 
 
 int loadModels() {
-	models.push_back(MyModel());
-	models.push_back(MyModel());
-	if (!Import3DFromFile(modelname, models[0].scene, models[0].importer, models[0].scaleFactor))
-		return(-1);
-	Import3DFromFile("spider.obj", models[1].scene, models[1].importer, models[1].scaleFactor);
 
-	LoadGLTextures(models[0].scene);
 
-	LoadGLTextures(models[1].scene);
+	map<int, string>::iterator it;
 
-	genVAOsAndUniformBuffer(models[0].scene, models[0].myMeshes);
-	genVAOsAndUniformBuffer(models[1].scene, models[1].myMeshes);
+	for (it = modelMap.begin(); it != modelMap.end(); it++)
+	{
+		int markerNum = it->first;
+		string modelName = it->second;
+
+		models[markerNum].marker = markerNum;
+
+		if (!Import3DFromFile(modelName, models[markerNum].scene, models[markerNum].importer, models[markerNum].scaleFactor))
+			return(-1);
+
+		LoadGLTextures(models[markerNum].scene);
+
+		genVAOsAndUniformBuffer(models[markerNum].scene, models[markerNum].myMeshes);
+
+	}
+
+
+
 
 	return 0;
 }
@@ -1344,6 +1393,9 @@ int main(int argc, char **argv) {
 		return(1);
 	}
 
+	loadModelFile((string)"modelToMarker.txt");
+
+
 	//  Init the app (load model and textures) and OpenGL
 	if (!init())
 		printf("Could not Load the Model\n");
@@ -1369,11 +1421,16 @@ int main(int argc, char **argv) {
 	textureIdMap.clear();
 
 	// clear myMeshes stuff
-	for (unsigned int i = 0; i < models.size(); ++i) {
-		for (unsigned int j = 0; i < models[i].myMeshes.size(); ++j) {
-			glDeleteVertexArrays(1, &(models[i].myMeshes[j].vao));
-			glDeleteTextures(1, &(models[i].myMeshes[j].texIndex));
-			glDeleteBuffers(1, &(models[i].myMeshes[j].uniformBlockIndex));
+	map<int, MyModel>::iterator it;
+	for (it = models.begin(); it != models.end(); it++)
+	{
+		int markerNum = it->first;
+		MyModel currentModel = it->second;
+
+		for (unsigned int j = 0; j < currentModel.myMeshes.size(); ++j) {
+			glDeleteVertexArrays(1, &(currentModel.myMeshes[j].vao));
+			glDeleteTextures(1, &(currentModel.myMeshes[j].texIndex));
+			glDeleteBuffers(1, &(currentModel.myMeshes[j].uniformBlockIndex));
 		}
 	}
 	// delete buffers
