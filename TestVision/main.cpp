@@ -884,7 +884,7 @@ void detectArucoMarkers(cv::Mat &image) {
 				models[markerIds[i]].seennow = true;
 				for (int jj = 0;jj < 4;jj++) {
 					for (int yy = 0; yy < 4;yy++) {
-						if (models[markerIds[i]].seenlast) {
+						if (models[markerIds[i]].seenlast && jj<3) {
 							if (std::abs(viewMatrix.at<float>(jj, yy) - models[markerIds[i]].viewMatrix[1].at<float>(jj, yy)) > .5)flipped = true;
 						}
 						
