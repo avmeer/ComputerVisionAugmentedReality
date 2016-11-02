@@ -831,14 +831,15 @@ void detectArucoMarkers(cv::Mat &image) {
 		markerIds,		// detected marker IDs
 		detectorParams,	// algorithm parameters
 		rejectedCandidates);
+	map<int, MyModel>::iterator it;
+	for (it = models.begin(); it != models.end(); it++) {
+		MyModel currentModel = it->second;
+		currentModel.viewMatrix[0] = cv::Mat::zeros(4, 4, CV_32F);
+	}
 
 	if (markerIds.size() > 0) {
 		// Draw all detected markers.
-		map<int, MyModel>::iterator it;
-		for (it = models.begin(); it != models.end(); it++){
-			MyModel currentModel = it->second;
-			currentModel.viewMatrix[0] = cv::Mat::zeros(4, 4, CV_32F);
-		}
+		
 		cv::aruco::drawDetectedMarkers(image, markerCorners, markerIds);
 
 		std::vector< cv::Vec3d > rvecs, tvecs;
