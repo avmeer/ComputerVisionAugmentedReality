@@ -64,10 +64,13 @@ using namespace std;
 struct MyModel {
 	aiScene* scene; // the global Assimp scene object for each model
 	std::vector<cv::Mat> viewMatrix = { cv::Mat::zeros(4, 4, CV_32F),cv::Mat::zeros(4, 4, CV_32F),cv::Mat::zeros(4, 4, CV_32F) };
+	bool seenlast = false;
+	bool seennow = false;
 	Assimp::Importer importer; // Create an instance of the Importer class
 	std::vector<struct MyMesh> myMeshes;
 	float scaleFactor; // scale factor for the model to fit in the window
 	int marker; //marker corresponding to this model
+	
 };
 
 
@@ -831,6 +834,11 @@ void detectArucoMarkers(cv::Mat &image) {
 
 	if (markerIds.size() > 0) {
 		// Draw all detected markers.
+		map<int, MyModel>::iterator it;
+		for (it = models.begin(); it != models.end(); it++){
+			MyModel currentModel = it->second;
+			currentModel.viewMatrix[0] = cv::Mat::zeros(4, 4, CV_32F);
+		}
 		cv::aruco::drawDetectedMarkers(image, markerCorners, markerIds);
 
 		std::vector< cv::Vec3d > rvecs, tvecs;
@@ -869,19 +877,29 @@ void detectArucoMarkers(cv::Mat &image) {
 			cvToGl.at<float>(3, 3) = 1.0f;
 			viewMatrix = cvToGl * viewMatrix;
 			cv::transpose(viewMatrix, viewMatrix);
-
+			bool flipped = false;
 			if (modelMap.count(markerIds[i])) {
+				models[markerIds[i]].seennow = true;
 				for (int jj = 0;jj < 4;jj++) {
 					for (int yy = 0; yy < 4;yy++) {
+						if (models[markerIds[i]].seenlast) {
+							if (std::abs(viewMatrix.at<float>(jj, yy) - models[markerIds[i]].viewMatrix[1].at<float>(jj, yy)) > .5)flipped = true;
+						}
+						
 						viewMatrixavg.at<float>(jj, yy) = (viewMatrix.at<float>(jj, yy) + models[markerIds[i]].viewMatrix[1].at<float>(jj, yy) + models[markerIds[i]].viewMatrix[2].at<float>(jj, yy)) / 3;
 					}
 				}
 
-				
-				models[markerIds[i]].viewMatrix[0] = viewMatrixavg;
-				models[markerIds[i]].viewMatrix[2] = models[markerIds[i]].viewMatrix[1];
-				models[markerIds[i]].viewMatrix[1] = viewMatrix;
+				if (flipped) {
+					models[markerIds[i]].viewMatrix[0] = models[markerIds[i]].viewMatrix[1];
+				}
+				else {
+					models[markerIds[i]].viewMatrix[0] = viewMatrixavg;
+					models[markerIds[i]].viewMatrix[2] = models[markerIds[i]].viewMatrix[1];
+					models[markerIds[i]].viewMatrix[1] = viewMatrix;
+				}
 			}
+			
 
 			// Draw coordinate axes.
 			cv::aruco::drawAxis(image,
@@ -891,6 +909,7 @@ void detectArucoMarkers(cv::Mat &image) {
 
 										// Draw a symbol in the upper right corner of the detected marker.
 		}
+		
 	}
 }
 
