@@ -161,6 +161,7 @@ std::vector< int > markerIds;
 std::vector< std::vector<cv::Point2f> > markerCorners, rejectedCandidates;
 
 cv::VideoCapture cap(0);
+bool flipped = false;
 
 double K_[3][3] =
 { { 675, 0, 320 },
@@ -819,9 +820,9 @@ void recursive_render(aiScene *sc, const aiNode* nd, std::vector<struct MyMesh> 
 
 // Rendering Callback Function
 
-void detectArucoMarkers() {
+void detectArucoMarkers(cv::Mat &image) {
 	cv::aruco::detectMarkers(
-		imageMat,		// input image
+		image,		// input image
 		dictionary,		// type of markers that will be searched for
 		markerCorners,	// output vector of marker corners
 		markerIds,		// detected marker IDs
@@ -830,7 +831,7 @@ void detectArucoMarkers() {
 
 	if (markerIds.size() > 0) {
 		// Draw all detected markers.
-		cv::aruco::drawDetectedMarkers(imageMat, markerCorners, markerIds);
+		cv::aruco::drawDetectedMarkers(image, markerCorners, markerIds);
 
 		std::vector< cv::Vec3d > rvecs, tvecs;
 		cv::aruco::estimatePoseSingleMarkers(
@@ -872,7 +873,7 @@ void detectArucoMarkers() {
 			}
 
 			// Draw coordinate axes.
-			cv::aruco::drawAxis(imageMat,
+			cv::aruco::drawAxis(image,
 				K, distCoeffs,			// camera parameters
 				r, t,					// marker pose
 				0.5*markerLength);		// length of the axes to be drawn
@@ -901,8 +902,16 @@ void camTimer() {
 	if (!imageMat.empty()) {
 		// Convert to RGB
 		cv::cvtColor(imageMat, imageMat, CV_BGR2RGB);
-		detectArucoMarkers();
+		
+		
+		if (flipped) {
+			cv::flip(imageMat, imageMat, 0);
+			cv::flip(imageMat, imageMat, 1);
+		}
+		detectArucoMarkers(imageMat);
+		
 		imageMat.copyTo(imageMatGL);
+		
 		camTimer();
 	}
 
@@ -1002,6 +1011,9 @@ void processKeys(unsigned char key, int xx, int yy)
 		break;
 	case 'm': glEnable(GL_MULTISAMPLE); break;
 	case 'n': glDisable(GL_MULTISAMPLE); break;
+	case 'f': flipped = !flipped; break;
+	case '0': cap = cv::VideoCapture(0); break;
+	case '1': cap = cv::VideoCapture(1); break;
 	}
 }
 
