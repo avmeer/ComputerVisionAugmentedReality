@@ -144,6 +144,7 @@ std::map<std::string, GLuint> textureIdMap;
 
 // Replace the model name by your model's filename
 static const std::string modelname = "jeep1.ms3d";
+static const std::string modelDir = "../models/";
 
 
 //our aruco variables
@@ -455,19 +456,19 @@ void get_bounding_box(aiVector3D* min, aiVector3D* max, aiScene* scene)
 
 bool Import3DFromFile(const std::string& pFile, aiScene*& scene, Assimp::Importer& importer, float& scaleFactor)
 {
-
+	std::string fileDir = modelDir + pFile;
 	//check if file exists
-	std::ifstream fin(pFile.c_str());
+	std::ifstream fin(fileDir.c_str());
 	if (!fin.fail()) {
 		fin.close();
 	}
 	else {
-		printf("Couldn't open file: %s\n", pFile.c_str());
+		printf("Couldn't open file: %s\n", fileDir.c_str());
 		printf("%s\n", importer.GetErrorString());
 		return false;
 	}
 
-	scene = const_cast<aiScene*>(importer.ReadFile(pFile, aiProcessPreset_TargetRealtime_Quality));
+	scene = const_cast<aiScene*>(importer.ReadFile(fileDir, aiProcessPreset_TargetRealtime_Quality));
 
 
 	// If the import failed, report it
@@ -478,7 +479,7 @@ bool Import3DFromFile(const std::string& pFile, aiScene*& scene, Assimp::Importe
 	}
 
 	// Now we can access the file's contents.
-	printf("Import of scene %s succeeded.", pFile.c_str());
+	printf("Import of scene %s succeeded.", fileDir.c_str());
 
 	aiVector3D scene_min, scene_max, scene_center;
 	get_bounding_box(&scene_min, &scene_max, scene);
@@ -533,6 +534,7 @@ int LoadGLTextures(aiScene* scene)
 		//save IL image ID
 		std::string filename = (*itr).first;  // get filename
 		std::replace(filename.begin(), filename.end(), '\\', '/'); //Replace backslash with forward slash so linux can find the files
+		filename = modelDir + filename;
 		(*itr).second = textureIds[i];	  // save texture id for filename in map
 
 		ilBindImage(imageIds[i]); /* Binding of DevIL image name */
