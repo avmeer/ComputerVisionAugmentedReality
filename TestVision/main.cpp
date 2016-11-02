@@ -6,6 +6,10 @@
 //
 // C++ 11 Multithreading Tutorial
 // https://solarianprogrammer.com/2011/12/16/cpp-11-thread-tutorial/
+// 
+// AruCo Camera Calibration
+// https://github.com/opencv/opencv_contrib/blob/master/modules/aruco/samples/calibrate_camera.cpp
+
 
 
 #ifdef _WIN32
@@ -162,7 +166,7 @@ const float markerLength = 1.75;
 double dist_[] = { 0, 0, 0, 0, 0 };
 cv::Mat distCoeffs = cv::Mat(5, 1, CV_64F, dist_).clone();
 cv::Mat imageMat;
-
+cv::Mat imageMatGL;
 
 #ifndef M_PI
 #define M_PI       3.14159265358979323846f
@@ -870,6 +874,7 @@ void camTimer() {
 		// Convert to RGB
 		cv::cvtColor(imageMat, imageMat, CV_BGR2RGB);
 		detectArucoMarkers();
+		imageMat.copyTo(imageMatGL);
 		camTimer();
 	}
 
@@ -878,7 +883,7 @@ void camTimer() {
 
 void renderScene(void) {
 	// Create Texture
-	prepareTexture(imageMat.cols, imageMat.rows,imageMat.data);
+	prepareTexture(imageMatGL.cols, imageMatGL.rows, imageMatGL.data);
 	//gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, imageMat.cols, imageMat.rows, GL_RGB, GL_UNSIGNED_BYTE, imageMat.data);
 	// clear the framebuffer (color and depth)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1309,6 +1314,9 @@ int main(int argc, char **argv) {
 
 
 	glutInitWindowPosition(100, 100);
+	windowWidth = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+	windowHeight = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+
 	glutInitWindowSize(windowWidth, windowHeight);
 	glutCreateWindow("Lighthouse3D - Assimp Demo");
 
