@@ -478,7 +478,7 @@ bool loadModelFile(string filename) {
 	}
 	else {
 		//if here, file was not opened correctly, notify user
-		printf("Error opening file,%s exiting",filename);
+		printf("Error opening file,%s exiting",filename.c_str());
 		exit(0);
 	}
 	return true;
@@ -511,7 +511,7 @@ bool Import3DFromFile(const std::string& pFile, aiScene*& scene, Assimp::Importe
 	}
 
 	// Now we can access the file's contents.
-	printf("Import of scene %s succeeded.", fileDir.c_str());
+	printf("Import of scene %s succeeded.\n", fileDir.c_str());
 
 	aiVector3D scene_min, scene_max, scene_center;
 	get_bounding_box(&scene_min, &scene_max, scene);
@@ -936,7 +936,6 @@ void renderScene(void) {
 
 	for (it = models.begin(); it != models.end(); it++)
 	{
-		int markerNum = it->first;
 		MyModel currentModel = it->second;
 
 
@@ -1424,7 +1423,6 @@ int main(int argc, char **argv) {
 	map<int, MyModel>::iterator it;
 	for (it = models.begin(); it != models.end(); it++)
 	{
-		int markerNum = it->first;
 		MyModel currentModel = it->second;
 
 		for (unsigned int j = 0; j < currentModel.myMeshes.size(); ++j) {
