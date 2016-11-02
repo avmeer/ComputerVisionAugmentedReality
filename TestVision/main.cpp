@@ -834,7 +834,8 @@ void detectArucoMarkers(cv::Mat &image) {
 	map<int, MyModel>::iterator it;
 	for (it = models.begin(); it != models.end(); it++) {
 		MyModel currentModel = it->second;
-		currentModel.viewMatrix[0] = cv::Mat::zeros(4, 4, CV_32F);
+		currentModel.seennow = false;
+		//currentModel.viewMatrix[0] = cv::Mat::zeros(4, 4, CV_32F);
 	}
 
 	if (markerIds.size() > 0) {
@@ -910,6 +911,14 @@ void detectArucoMarkers(cv::Mat &image) {
 
 										// Draw a symbol in the upper right corner of the detected marker.
 		}
+		
+	}
+	for (it = models.begin(); it != models.end(); it++) {
+		MyModel currentModel = it->second;
+		if (!currentModel.seennow) {
+			currentModel.viewMatrix[0] = cv::Mat::zeros(4, 4, CV_32F);
+		}
+		currentModel.seenlast = currentModel.seennow;
 		
 	}
 }
