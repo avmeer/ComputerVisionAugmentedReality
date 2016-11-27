@@ -42,7 +42,7 @@
 #include "textfile.h"
 
 // assimp include files. These three are usually needed.
-#include "assimp/Importer.hpp"	//OO version Header!
+#include "assimp/Importer.hpp"    //OO version Header!
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
 
@@ -64,13 +64,13 @@ using namespace std;
 struct MyModel {
 	aiScene* scene; // the global Assimp scene object for each model
 	std::vector<cv::Mat> viewMatrix = { cv::Mat::zeros(4, 4, CV_32F),cv::Mat::zeros(4, 4, CV_32F),cv::Mat::zeros(4, 4, CV_32F) };
-	bool seenlast = false;
+	int seenlast = 0;
 	bool seennow = false;
 	Assimp::Importer importer; // Create an instance of the Importer class
 	std::vector<struct MyMesh> myMeshes;
 	float scaleFactor; // scale factor for the model to fit in the window
 	int marker; //marker corresponding to this model
-	
+
 };
 
 
@@ -482,7 +482,7 @@ bool loadModelFile(string filename) {
 	}
 	else {
 		//if here, file was not opened correctly, notify user
-		printf("Error opening file,%s exiting",filename.c_str());
+		printf("Error opening file,%s exiting", filename.c_str());
 		exit(0);
 	}
 	return true;
@@ -540,7 +540,7 @@ int LoadGLTextures(aiScene* scene)
 	for (unsigned int m = 0; m < scene->mNumMaterials; ++m)
 	{
 		int texIndex = 0;
-		aiString path;	// filename
+		aiString path;    // filename
 
 		aiReturn texFound = scene->mMaterials[m]->GetTexture(aiTextureType_DIFFUSE, texIndex, &path);
 		while (texFound == AI_SUCCESS) {
@@ -571,7 +571,7 @@ int LoadGLTextures(aiScene* scene)
 		std::string filename = (*itr).first;  // get filename
 		std::replace(filename.begin(), filename.end(), '\\', '/'); //Replace backslash with forward slash so linux can find the files
 		filename = modelDir + filename;
-		(*itr).second = textureIds[i];	  // save texture id for filename in map
+		(*itr).second = textureIds[i];      // save texture id for filename in map
 
 		ilBindImage(imageIds[i]); /* Binding of DevIL image name */
 		ilEnable(IL_ORIGIN_SET);
@@ -608,7 +608,7 @@ int LoadGLTextures(aiScene* scene)
 //// Can't send color down as a pointer to aiColor4D because AI colors are ABGR.
 //void Color4f(const aiColor4D *color)
 //{
-//	glColor4f(color->r, color->g, color->b, color->a);
+//    glColor4f(color->r, color->g, color->b, color->a);
 //}
 
 void set_float4(float f[4], float a, float b, float c, float d)
@@ -703,7 +703,7 @@ void genVAOsAndUniformBuffer(aiScene *sc, std::vector<struct MyMesh> &myMeshes) 
 		// create material uniform buffer
 		aiMaterial *mtl = sc->mMaterials[mesh->mMaterialIndex];
 
-		aiString texPath;	//contains filename of texture
+		aiString texPath;    //contains filename of texture
 		if (AI_SUCCESS == mtl->GetTexture(aiTextureType_DIFFUSE, 0, &texPath)) {
 			//bind texture
 			unsigned int texId = textureIdMap[texPath.data];
@@ -825,33 +825,33 @@ void recursive_render(aiScene *sc, const aiNode* nd, std::vector<struct MyMesh> 
 
 void detectArucoMarkers(cv::Mat &image) {
 	cv::aruco::detectMarkers(
-		image,		// input image
-		dictionary,		// type of markers that will be searched for
-		markerCorners,	// output vector of marker corners
-		markerIds,		// detected marker IDs
-		detectorParams,	// algorithm parameters
+		image,        // input image
+		dictionary,        // type of markers that will be searched for
+		markerCorners,    // output vector of marker corners
+		markerIds,        // detected marker IDs
+		detectorParams,    // algorithm parameters
 		rejectedCandidates);
 	map<int, MyModel>::iterator it;
+
 	for (it = models.begin(); it != models.end(); it++) {
-		MyModel currentModel = it->second;
-		currentModel.seennow = false;
-		//currentModel.viewMatrix[0] = cv::Mat::zeros(4, 4, CV_32F);
+		it->second.seennow = false;
 	}
+
 
 	if (markerIds.size() > 0) {
 		// Draw all detected markers.
-		
+
 		cv::aruco::drawDetectedMarkers(image, markerCorners, markerIds);
 
 		std::vector< cv::Vec3d > rvecs, tvecs;
-		
+
 		cv::aruco::estimatePoseSingleMarkers(
-			markerCorners,	// vector of already detected markers corners
-			markerLength,	// length of the marker's side
-			K,				// input 3x3 floating-point instrinsic camera matrix K
-			distCoeffs,		// vector of distortion coefficients of 4, 5, 8 or 12 elements
-			rvecs,			// array of output rotation vectors 
-			tvecs);			// array of output translation vectors
+			markerCorners,    // vector of already detected markers corners
+			markerLength,    // length of the marker's side
+			K,                // input 3x3 floating-point instrinsic camera matrix K
+			distCoeffs,        // vector of distortion coefficients of 4, 5, 8 or 12 elements
+			rvecs,            // array of output rotation vectors 
+			tvecs);            // array of output translation vectors
 
 		for (unsigned int i = 0; i < markerIds.size(); i++) {
 			cv::Mat viewMatrix = cv::Mat::zeros(4, 4, CV_32F);;
@@ -880,16 +880,24 @@ void detectArucoMarkers(cv::Mat &image) {
 			viewMatrix = cvToGl * viewMatrix;
 			cv::transpose(viewMatrix, viewMatrix);
 			bool flipped = false;
+
+
 			if (modelMap.count(markerIds[i])) {
 				models[markerIds[i]].seennow = true;
-				for (int jj = 0;jj < 4;jj++) {
-					for (int yy = 0; yy < 4;yy++) {
-						if (models[markerIds[i]].seenlast && jj<3) {
+
+
+
+				for (int jj = 0; jj < 4; jj++) {
+					for (int yy = 0; yy < 4; yy++) {
+						if (models[markerIds[i]].seenlast > 3 || models[markerIds[i]].seenlast < 0) {
 							if (std::abs(viewMatrix.at<float>(jj, yy) - models[markerIds[i]].viewMatrix[1].at<float>(jj, yy)) > .5)flipped = true;
 						}
-						
+
 						viewMatrixavg.at<float>(jj, yy) = (viewMatrix.at<float>(jj, yy) + models[markerIds[i]].viewMatrix[1].at<float>(jj, yy) + models[markerIds[i]].viewMatrix[2].at<float>(jj, yy)) / 3;
 					}
+				}
+				if (models[markerIds[i]].seenlast < 0) {
+					models[markerIds[i]].seenlast = 0;
 				}
 
 				if (flipped) {
@@ -901,25 +909,38 @@ void detectArucoMarkers(cv::Mat &image) {
 					models[markerIds[i]].viewMatrix[1] = viewMatrix;
 				}
 			}
-			
+
 
 			// Draw coordinate axes.
 			cv::aruco::drawAxis(image,
-				K, distCoeffs,			// camera parameters
-				r, t,					// marker pose
-				0.5*markerLength);		// length of the axes to be drawn
+				K, distCoeffs,            // camera parameters
+				r, t,                    // marker pose
+				0.5*markerLength);        // length of the axes to be drawn
 
-										// Draw a symbol in the upper right corner of the detected marker.
+										  // Draw a symbol in the upper right corner of the detected marker.
 		}
-		
+
 	}
+
 	for (it = models.begin(); it != models.end(); it++) {
-		MyModel currentModel = it->second;
-		if (!currentModel.seennow) {
-			currentModel.viewMatrix[0] = cv::Mat::zeros(4, 4, CV_32F);
+		if (!it->second.seennow) {
+			if (it->second.seenlast == -10) {
+				it->second.viewMatrix[0] = cv::Mat::zeros(4, 4, CV_32F);
+				it->second.seenlast = 0;
+			}
+			else if (it->second.seenlast < 0) {
+				it->second.seenlast = it->second.seenlast - 1;
+			}
+			else if (it->second.seenlast > 0) {
+				it->second.seenlast = -1;
+			}
+
 		}
-		currentModel.seenlast = currentModel.seennow;
-		
+		else if (it->second.seenlast<100) {
+			it->second.seenlast++;
+		}
+
+
 	}
 }
 
@@ -928,11 +949,11 @@ void detectArucoMarkers(cv::Mat &image) {
 void prepareTexture(int w, int h, unsigned char* data) {
 
 	/* Create and load texture to OpenGL */
-	glBindTexture(GL_TEXTURE_2D, textureID); 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 
-                w, h, 
-                0, GL_RGB, GL_UNSIGNED_BYTE,
-                data); 
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+		w, h,
+		0, GL_RGB, GL_UNSIGNED_BYTE,
+		data);
 	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
@@ -942,16 +963,16 @@ void camTimer() {
 	if (!imageMat.empty()) {
 		// Convert to RGB
 		cv::cvtColor(imageMat, imageMat, CV_BGR2RGB);
-		
-		
+
+
 		if (flipped) {
 			cv::flip(imageMat, imageMat, 0);
 			cv::flip(imageMat, imageMat, 1);
 		}
 		detectArucoMarkers(imageMat);
-		
+
 		imageMat.copyTo(imageMatGL);
-		
+
 		camTimer();
 	}
 
@@ -1013,10 +1034,10 @@ void renderScene(void) {
 
 	}
 
-	
 
 
-	
+
+
 
 
 	// FPS computation and display
@@ -1154,7 +1175,7 @@ GLuint setupShaders() {
 
 // --------------------------------------------------------
 //
-//			Shader Stuff
+//            Shader Stuff
 //
 // --------------------------------------------------------
 
@@ -1307,14 +1328,14 @@ int init2D() {
 
 	glGenTextures(1, &textureID); //Gen a new texture and store the handle in texname
 
-								//These settings stick with the texture that's bound. You only need to set them
-								//once.
+								  //These settings stick with the texture that's bound. You only need to set them
+								  //once.
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
 	//allocate memory on the graphics card for the texture. It's fine if
 	//texture_data doesn't have any data in it, the texture will just appear black
 	//until you update it.
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB,GL_UNSIGNED_BYTE, {});
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, {});
 
 
 	return true;
@@ -1381,7 +1402,7 @@ int init()
 	glGenBuffers(1, &matricesUniBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, matricesUniBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, MatricesUniBufferSize, NULL, GL_DYNAMIC_DRAW);
-	glBindBufferRange(GL_UNIFORM_BUFFER, matricesUniLoc, matricesUniBuffer, 0, MatricesUniBufferSize);	//setUniforms();
+	glBindBufferRange(GL_UNIFORM_BUFFER, matricesUniLoc, matricesUniBuffer, 0, MatricesUniBufferSize);    //setUniforms();
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 	glEnable(GL_MULTISAMPLE);
@@ -1431,10 +1452,10 @@ int main(int argc, char **argv) {
 	//(1000.0f / 15.0f, camTimer, 0);
 
 
-	//	Mouse and Keyboard Callbacks
+	//    Mouse and Keyboard Callbacks
 	glutKeyboardFunc(processKeys);
 
-	//	Init GLEW
+	//    Init GLEW
 	//glewExperimental = GL_TRUE;
 	glewInit();
 	if (glewIsSupported("GL_VERSION_3_3"))
@@ -1486,5 +1507,4 @@ int main(int argc, char **argv) {
 	// delete buffers
 	glDeleteBuffers(1, &matricesUniBuffer);
 	exit(0);
-}
-
+};
